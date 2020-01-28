@@ -60,10 +60,6 @@ contract REVSale is DSAuth, DSExec {
 
         REV = rev;
         REV.mint(address(this), totalSupply);
-
-        // @TODO: guess we don't need that?
-        // Address 0xb1 is provably non-transferrable
-        REV.transfer(address(0xb1), foundersAllocation);
     }
 
     function time() public view returns (uint) {
@@ -120,11 +116,6 @@ contract REVSale is DSAuth, DSExec {
         if (claimed[day][msg.sender] || dailyTotals[day] == 0) {
             return;
         }
-
-        // @TODO: rounding errors?
-        // This will have small rounding errors, but the token is
-        // going to be truncated to 8 decimal places or less anyway
-        // when launched on its own chain.
 
         uint256 dailyTotal = dailyTotals[day];
         uint256 userTotal = userBuys[day][msg.sender];
