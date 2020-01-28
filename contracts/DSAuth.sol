@@ -1,42 +1,47 @@
 pragma solidity >=0.5.16;
 
-import './DSAuthEvents.sol';
-import './DSAuthority.sol';
+contract DSAuthority {
+    function canCall(
+        address src, address dst, bytes4 sig
+    ) public view returns (bool);
+}
+
+contract DSAuthEvents {
+    event LogSetAuthority (address indexed authority);
+    event LogSetOwner     (address indexed owner);
+}
 
 contract DSAuth is DSAuthEvents {
     DSAuthority  public  authority;
     address      public  owner;
 
-    function DSAuth() {
+    constructor() public {
         owner = msg.sender;
-        LogSetOwner(msg.sender);
+        emit LogSetOwner(msg.sender);
     }
 
     function setOwner(address owner_)
+    public
     auth
     {
         owner = owner_;
-        LogSetOwner(owner);
+        emit LogSetOwner(owner);
     }
 
     function setAuthority(DSAuthority authority_)
+    public
     auth
     {
         authority = authority_;
-        LogSetAuthority(authority);
+        emit LogSetAuthority(address(authority));
     }
 
     modifier auth {
-        assert(isAuthorized(msg.sender, msg.sig));
+        require(isAuthorized(msg.sender, msg.sig), "ds-auth-unauthorized");
         _;
     }
 
-    modifier authorized(bytes4 sig) {
-        assert(isAuthorized(msg.sender, sig));
-        _;
-    }
-
-    function isAuthorized(address src, bytes4 sig) internal returns (bool) {
+    function isAuthorized(address src, bytes4 sig) internal view returns (bool) {
         if (src == address(this)) {
             return true;
         } else if (src == owner) {
@@ -44,11 +49,7 @@ contract DSAuth is DSAuthEvents {
         } else if (authority == DSAuthority(0)) {
             return false;
         } else {
-            return authority.canCall(src, this, sig);
+            return authority.canCall(src, address(this), sig);
         }
-    }
-
-    function assert(bool x) internal {
-        if (!x) throw;
     }
 }
