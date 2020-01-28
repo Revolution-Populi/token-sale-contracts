@@ -1,22 +1,24 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity >=0.5.16;
 
 contract DSExec {
-    function tryExec( address target, bytes calldata, uint value)
+    function tryExec( address target, bytes memory data, uint value)
     internal
-    returns (bool call_ret)
+    returns (bool ok)
     {
-        return target.call.value(value)(calldata);
+        assembly {
+            ok := call(gas, target, value, add(data, 0x20), mload(data), 0, 0)
+        }
     }
-    function exec( address target, bytes calldata, uint value)
+    function exec( address target, bytes memory data, uint value)
     internal
     {
-        if(!tryExec(target, calldata, value)) {
-            throw;
+        if(!tryExec(target, data, value)) {
+            revert("ds-exec-call-failed");
         }
     }
 
     // Convenience aliases
-    function exec( address t, bytes c )
+    function exec( address t, bytes memory c )
     internal
     {
         exec(t, c, 0);
@@ -26,7 +28,7 @@ contract DSExec {
     {
         bytes memory c; exec(t, c, v);
     }
-    function tryExec( address t, bytes c )
+    function tryExec( address t, bytes memory c )
     internal
     returns (bool)
     {

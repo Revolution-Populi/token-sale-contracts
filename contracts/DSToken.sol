@@ -1,4 +1,4 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity >=0.5.16;
 
 import './DSTokenBase.sol';
 import './DSStop.sol';
