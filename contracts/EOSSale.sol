@@ -35,7 +35,7 @@ contract EOSSale is DSAuth, DSExec, DSMath {
     uint     _openTime,
     uint     _startTime,
     uint128  _foundersAllocation,
-    string   _foundersKey
+    string memory   _foundersKey
     ) {
         numberOfDays       = _numberOfDays;
         totalSupply        = _totalSupply;
@@ -65,9 +65,9 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         EOS.mint(totalSupply);
 
         // Address 0xb1 is provably non-transferrable
-        EOS.push(0xb1, foundersAllocation);
-        keys[0xb1] = foundersKey;
-        LogRegister(0xb1, foundersKey);
+        EOS.push(address(0xb1), foundersAllocation);
+        keys[address(0xb1)] = foundersKey;
+        emit LogRegister(address(0xb1), foundersKey);
     }
 
     function time() view returns (uint) {
@@ -107,7 +107,7 @@ contract EOSSale is DSAuth, DSExec, DSMath {
             assert(dailyTotals[day] <= limit);
         }
 
-        LogBuy(day, msg.sender, msg.value);
+        emit LogBuy(day, msg.sender, msg.value);
     }
 
     function buy() payable {
@@ -129,15 +129,15 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         // going to be truncated to 8 decimal places or less anyway
         // when launched on its own chain.
 
-        var dailyTotal = cast(dailyTotals[day]);
-        var userTotal  = cast(userBuys[day][msg.sender]);
-        var price      = wdiv(cast(createOnDay(day)), dailyTotal);
-        var reward     = wmul(price, userTotal);
+        uint128 dailyTotal = cast(dailyTotals[day]);
+        uint128 userTotal  = cast(userBuys[day][msg.sender]);
+        uint128 price      = wdiv(cast(createOnDay(day)), dailyTotal);
+        uint128 reward     = wmul(price, userTotal);
 
         claimed[day][msg.sender] = true;
         EOS.push(msg.sender, reward);
 
-        LogClaim(day, msg.sender, reward);
+        emit LogClaim(day, msg.sender, reward);
     }
 
     function claimAll() {
@@ -149,26 +149,26 @@ contract EOSSale is DSAuth, DSExec, DSMath {
     // Value should be a public key.  Read full key import policy.
     // Manually registering requires a base58
     // encoded using the STEEM, BTS, or EOS public key format.
-    function register(string key) {
+    function register(string memory key) {
         assert(today() <=  numberOfDays + 1);
         assert(bytes(key).length <= 64);
 
         keys[msg.sender] = key;
 
-        LogRegister(msg.sender, key);
+        emit LogRegister(msg.sender, key);
     }
 
     // Crowdsale owners can collect ETH any number of times
     function collect() auth {
         assert(today() > 0); // Prevent recycling during window 0
-        exec(msg.sender, this.balance);
-        LogCollect(this.balance);
+        exec(msg.sender, address(this).balance);
+        emit LogCollect(address(this).balance);
     }
 
     // Anyone can freeze the token 1 day after the sale ends
     function freeze() {
         assert(today() > numberOfDays + 1);
         EOS.stop();
-        LogFreeze();
+        emit LogFreeze();
     }
 }
