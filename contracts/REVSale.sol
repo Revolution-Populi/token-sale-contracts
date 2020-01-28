@@ -5,9 +5,9 @@ import './DSExec.sol';
 import './DSMath.sol';
 import './DSToken.sol';
 
-contract EOSSale is DSAuth, DSExec, DSMath {
-    DSToken  public  EOS;                  // The EOS token itself
-    uint128  public  totalSupply;          // Total EOS amount created
+contract REVSale is DSAuth, DSExec, DSMath {
+    DSToken  public  REV;                  // The REV token itself
+    uint128  public  totalSupply;          // Total REV amount created
     uint128  public  foundersAllocation;   // Amount given to founders
     string   public  foundersKey;          // Public key of founders
 
@@ -54,17 +54,17 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         assert(openTime < startTime);
     }
 
-    function initialize(DSToken eos) public auth {
-        assert(address(EOS) == address(0));
-        assert(eos.owner() == address(this));
-        assert(eos.authority() == DSAuthority(0));
-        assert(eos.totalSupply() == 0);
+    function initialize(DSToken rev) public auth {
+        assert(address(REV) == address(0));
+        assert(rev.owner() == address(this));
+        assert(rev.authority() == DSAuthority(0));
+        assert(rev.totalSupply() == 0);
 
-        EOS = eos;
-        EOS.mint(totalSupply);
+        REV = rev;
+        REV.mint(totalSupply);
 
         // Address 0xb1 is provably non-transferrable
-        EOS.push(address(0xb1), foundersAllocation);
+        REV.push(address(0xb1), foundersAllocation);
         keys[address(0xb1)] = foundersKey;
     }
 
@@ -133,7 +133,7 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         uint256 reward     = wmul(price, userTotal);
 
         claimed[day][msg.sender] = true;
-        EOS.push(msg.sender, reward);
+        REV.push(msg.sender, reward);
 
         emit LogClaim(day, msg.sender, reward);
     }
@@ -154,7 +154,7 @@ contract EOSSale is DSAuth, DSExec, DSMath {
     // Anyone can freeze the token 1 day after the sale ends
     function freeze() public {
         assert(today() > numberOfDays + 1);
-        EOS.stop();
+        REV.stop();
         emit LogFreeze();
     }
 }
