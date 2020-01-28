@@ -25,7 +25,6 @@ contract EOSSale is DSAuth, DSExec, DSMath {
 
     event LogBuy      (uint window, address user, uint amount);
     event LogClaim    (uint window, address user, uint amount);
-    event LogRegister (address user, string key);
     event LogCollect  (uint amount);
     event LogFreeze   ();
 
@@ -67,7 +66,6 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         // Address 0xb1 is provably non-transferrable
         EOS.push(address(0xb1), foundersAllocation);
         keys[address(0xb1)] = foundersKey;
-        emit LogRegister(address(0xb1), foundersKey);
     }
 
     function time() public view returns (uint) {
@@ -144,18 +142,6 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         for (uint i = 0; i < today(); i++) {
             claim(i);
         }
-    }
-
-    // Value should be a public key.  Read full key import policy.
-    // Manually registering requires a base58
-    // encoded using the STEEM, BTS, or EOS public key format.
-    function register(string memory key) public {
-        assert(today() <=  numberOfDays + 1);
-        assert(bytes(key).length <= 64);
-
-        keys[msg.sender] = key;
-
-        emit LogRegister(msg.sender, key);
     }
 
     // Crowdsale owners can collect ETH any number of times
