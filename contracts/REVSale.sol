@@ -20,10 +20,10 @@ contract REVSale is DSAuth, DSExec {
     uint     public  numberOfDays;         // Number of windows after 0
     uint     public  createPerDay;         // Tokens sold in each window
 
-    mapping (uint => uint)                       public  dailyTotals;
-    mapping (uint => mapping (address => uint))  public  userBuys;
-    mapping (uint => mapping (address => bool))  public  claimed;
-    mapping (address => string)                  public  keys;
+    mapping(uint => uint)                      public  dailyTotals;
+    mapping(uint => mapping(address => uint))  public  userBuys;
+    mapping(uint => mapping(address => bool))  public  claimed;
+    mapping(address => string)                 public  keys;
 
     event LogBuy      (uint window, address user, uint amount);
     event LogClaim    (uint window, address user, uint amount);
@@ -31,19 +31,19 @@ contract REVSale is DSAuth, DSExec {
     event LogFreeze   ();
 
     constructor(
-        uint     _numberOfDays,
-        uint128  _totalSupply,
-        uint     _openTime,
-        uint     _startTime,
-        uint128  _foundersAllocation,
-        string memory   _foundersKey
+        uint _numberOfDays,
+        uint128 _totalSupply,
+        uint _openTime,
+        uint _startTime,
+        uint128 _foundersAllocation,
+        string memory _foundersKey
     ) public {
-        numberOfDays       = _numberOfDays;
-        totalSupply        = _totalSupply;
-        openTime           = _openTime;
-        startTime          = _startTime;
+        numberOfDays = _numberOfDays;
+        totalSupply = _totalSupply;
+        openTime = _openTime;
+        startTime = _startTime;
         foundersAllocation = _foundersAllocation;
-        foundersKey        = _foundersKey;
+        foundersKey = _foundersKey;
 
         createFirstDay = totalSupply.mul(0.2 ether);
         createPerDay = ((totalSupply.sub(foundersAllocation)).sub(createFirstDay)).div(numberOfDays);
@@ -112,7 +112,7 @@ contract REVSale is DSAuth, DSExec {
         buyWithLimit(today(), 0);
     }
 
-    function () external payable {
+    function() external payable {
         buy();
     }
 
@@ -129,9 +129,9 @@ contract REVSale is DSAuth, DSExec {
         // when launched on its own chain.
 
         uint256 dailyTotal = dailyTotals[day];
-        uint256 userTotal  = userBuys[day][msg.sender];
-        uint256 price      = createOnDay(day).div(dailyTotal);
-        uint256 reward     = price.mul(userTotal);
+        uint256 userTotal = userBuys[day][msg.sender];
+        uint256 price = createOnDay(day).div(dailyTotal);
+        uint256 reward = price.mul(userTotal);
 
         claimed[day][msg.sender] = true;
         REV.push(msg.sender, reward);
@@ -147,7 +147,8 @@ contract REVSale is DSAuth, DSExec {
 
     // Crowdsale owners can collect ETH any number of times
     function collect() public auth {
-        assert(today() > 0); // Prevent recycling during window 0
+        assert(today() > 0);
+        // Prevent recycling during window 0
         exec(msg.sender, address(this).balance);
         emit LogCollect(address(this).balance);
     }

@@ -4,9 +4,9 @@ import './ERC20.sol';
 import './DSStop.sol';
 
 contract REVToken is ERC20, DSStop {
-
     bytes32  public  symbol;
-    uint256  public  decimals = 18; // standard token precision. override to customize
+    bytes32  public  name = '';
+    uint256  public  decimals = 18;
 
     constructor(bytes32 symbol_) public {
         symbol = symbol_;
@@ -20,10 +20,7 @@ contract REVToken is ERC20, DSStop {
         return super.approve(guy, wad);
     }
 
-    function transferFrom(address src, address dst, uint wad)
-    public
-    stoppable
-    returns (bool)
+    function transferFrom(address src, address dst, uint wad) public stoppable returns (bool)
     {
         return super.transferFrom(src, dst, wad);
     }
@@ -55,9 +52,6 @@ contract REVToken is ERC20, DSStop {
     function burn(address guy, uint wad) public auth stoppable {
         _burn(guy, wad);
     }
-
-    // Optional token name
-    bytes32   public  name = "";
 
     function setName(bytes32 name_) public auth {
         name = name_;
