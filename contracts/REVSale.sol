@@ -63,6 +63,7 @@ contract REVSale is DSAuth, DSExec, DSMath {
         REV = rev;
         REV.mint(totalSupply);
 
+        // @TODO: guess we don't need that?
         // Address 0xb1 is provably non-transferrable
         REV.push(address(0xb1), foundersAllocation);
         keys[address(0xb1)] = foundersKey;
@@ -123,6 +124,7 @@ contract REVSale is DSAuth, DSExec, DSMath {
             return;
         }
 
+        // @TODO: rounding errors?
         // This will have small rounding errors, but the token is
         // going to be truncated to 8 decimal places or less anyway
         // when launched on its own chain.

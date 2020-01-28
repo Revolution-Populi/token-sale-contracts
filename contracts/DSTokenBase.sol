@@ -1,9 +1,9 @@
 pragma solidity >=0.5.16;
 
-import './ERC20.sol';
+import './IERC20.sol';
 import './DSMath.sol';
 
-contract DSTokenBase is ERC20, DSMath {
+contract DSTokenBase is IERC20, DSMath {
     uint256                                            _supply;
     mapping (address => uint256)                       _balances;
     mapping (address => mapping (address => uint256))  _approvals;
