@@ -63,7 +63,7 @@ contract REVSale is DSAuth, DSExec {
 
         // @TODO: guess we don't need that?
         // Address 0xb1 is provably non-transferrable
-        REV.push(address(0xb1), foundersAllocation);
+        REV.transfer(address(0xb1), foundersAllocation);
     }
 
     function time() public view returns (uint) {
@@ -132,7 +132,8 @@ contract REVSale is DSAuth, DSExec {
         uint256 reward = price.mul(userTotal);
 
         claimed[day][msg.sender] = true;
-        REV.push(msg.sender, reward);
+
+        REV.transfer(msg.sender, reward);
 
         emit LogClaim(day, msg.sender, reward);
     }

@@ -29,10 +29,6 @@ contract REVToken is ERC20, DSStop {
         return super.transferFrom(sender, recipient, amount);
     }
 
-    function push(address recipient, uint amount) public {
-        transferFrom(msg.sender, recipient, amount);
-    }
-
     function mint(address account, uint amount) public auth stoppable {
         _mint(account, amount);
     }
