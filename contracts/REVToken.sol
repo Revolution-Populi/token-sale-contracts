@@ -16,12 +16,9 @@ contract REVToken is ERC20, DSStop {
         name = name_;
     }
 
-    function approve(address spender) public stoppable returns (bool) {
-        return super.approve(spender, uint(-1));
-    }
-
-    function approve(address spender, uint amount) public stoppable returns (bool) {
-        return super.approve(spender, amount);
+    function transfer(address recipient, uint amount) public stoppable returns (bool)
+    {
+        return super.transfer(recipient, amount);
     }
 
     function transferFrom(address sender, address recipient, uint amount) public stoppable returns (bool)
