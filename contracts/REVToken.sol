@@ -12,6 +12,10 @@ contract REVToken is ERC20, DSStop {
         symbol = symbol_;
     }
 
+    function setName(bytes32 name_) public auth {
+        name = name_;
+    }
+
     function approve(address spender) public stoppable returns (bool) {
         return super.approve(spender, uint(-1));
     }
@@ -20,17 +24,13 @@ contract REVToken is ERC20, DSStop {
         return super.approve(spender, amount);
     }
 
-    function transferFrom(address src, address dst, uint amount) public stoppable returns (bool)
+    function transferFrom(address sender, address recipient, uint amount) public stoppable returns (bool)
     {
-        return super.transferFrom(src, dst, amount);
+        return super.transferFrom(sender, recipient, amount);
     }
 
     function push(address recipient, uint amount) public {
         transferFrom(msg.sender, recipient, amount);
-    }
-
-    function burn(uint amount) public {
-        burn(msg.sender, amount);
     }
 
     function mint(address account, uint amount) public auth stoppable {
@@ -39,9 +39,5 @@ contract REVToken is ERC20, DSStop {
 
     function burn(address account, uint amount) public auth stoppable {
         _burn(account, amount);
-    }
-
-    function setName(bytes32 name_) public auth {
-        name = name_;
     }
 }
