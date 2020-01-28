@@ -23,7 +23,6 @@ contract REVSale is DSAuth, DSExec {
     mapping(uint => uint)                      public  dailyTotals;
     mapping(uint => mapping(address => uint))  public  userBuys;
     mapping(uint => mapping(address => bool))  public  claimed;
-    mapping(address => string)                 public  keys;
 
     event LogBuy      (uint window, address user, uint amount);
     event LogClaim    (uint window, address user, uint amount);
@@ -65,7 +64,6 @@ contract REVSale is DSAuth, DSExec {
         // @TODO: guess we don't need that?
         // Address 0xb1 is provably non-transferrable
         REV.push(address(0xb1), foundersAllocation);
-        keys[address(0xb1)] = foundersKey;
     }
 
     function time() public view returns (uint) {
