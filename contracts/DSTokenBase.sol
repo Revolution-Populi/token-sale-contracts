@@ -1,9 +1,11 @@
 pragma solidity >=0.5.16;
 
 import './IERC20.sol';
-import './DSMath.sol';
+import './SafeMath.sol';
 
-contract DSTokenBase is IERC20, DSMath {
+contract DSTokenBase is IERC20 {
+    using SafeMath for uint256;
+
     uint256                                            _supply;
     mapping (address => uint256)                       _balances;
     mapping (address => mapping (address => uint256))  _approvals;
@@ -33,12 +35,12 @@ contract DSTokenBase is IERC20, DSMath {
     {
         if (src != msg.sender) {
             require(_approvals[src][msg.sender] >= wad, "ds-token-insufficient-approval");
-            _approvals[src][msg.sender] = sub(_approvals[src][msg.sender], wad);
+            _approvals[src][msg.sender] = _approvals[src][msg.sender].sub(wad);
         }
 
         require(_balances[src] >= wad, "ds-token-insufficient-balance");
-        _balances[src] = sub(_balances[src], wad);
-        _balances[dst] = add(_balances[dst], wad);
+        _balances[src] = _balances[src].sub(wad);
+        _balances[dst] = _balances[dst].add(wad);
 
         emit Transfer(src, dst, wad);
 

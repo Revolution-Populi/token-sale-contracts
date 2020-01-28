@@ -2,13 +2,15 @@ pragma solidity >=0.5.16;
 
 import './DSAuth.sol';
 import './DSExec.sol';
-import './DSMath.sol';
 import './DSToken.sol';
+import './SafeMath.sol';
 
-contract REVSale is DSAuth, DSExec, DSMath {
+contract REVSale is DSAuth, DSExec {
+    using SafeMath for uint256;
+
     DSToken  public  REV;                  // The REV token itself
-    uint128  public  totalSupply;          // Total REV amount created
-    uint128  public  foundersAllocation;   // Amount given to founders
+    uint     public  totalSupply;          // Total REV amount created
+    uint     public  foundersAllocation;   // Amount given to founders
     string   public  foundersKey;          // Public key of founders
 
     uint     public  openTime;             // Time of window 0 opening
@@ -43,11 +45,8 @@ contract REVSale is DSAuth, DSExec, DSMath {
         foundersAllocation = _foundersAllocation;
         foundersKey        = _foundersKey;
 
-        createFirstDay = wmul(totalSupply, 0.2 ether);
-        createPerDay = wdiv(
-        sub(sub(totalSupply, foundersAllocation), createFirstDay),
-        numberOfDays
-        );
+        createFirstDay = totalSupply.mul(0.2 ether);
+        createPerDay = ((totalSupply.sub(foundersAllocation)).sub(createFirstDay)).div(numberOfDays);
 
         assert(numberOfDays > 0);
         assert(totalSupply > foundersAllocation);
@@ -82,7 +81,7 @@ contract REVSale is DSAuth, DSExec, DSMath {
     function dayFor(uint timestamp) public view returns (uint) {
         return timestamp < startTime
         ? 0
-        : sub(timestamp, startTime) / 23 hours + 1;
+        : timestamp.sub(startTime) / 23 hours + 1;
     }
 
     function createOnDay(uint day) public view returns (uint) {
@@ -131,8 +130,8 @@ contract REVSale is DSAuth, DSExec, DSMath {
 
         uint256 dailyTotal = dailyTotals[day];
         uint256 userTotal  = userBuys[day][msg.sender];
-        uint256 price      = wdiv(createOnDay(day), dailyTotal);
-        uint256 reward     = wmul(price, userTotal);
+        uint256 price      = createOnDay(day).div(dailyTotal);
+        uint256 reward     = price.mul(userTotal);
 
         claimed[day][msg.sender] = true;
         REV.push(msg.sender, reward);
