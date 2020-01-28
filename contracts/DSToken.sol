@@ -31,9 +31,11 @@ contract DSToken is ERC20, DSStop {
     function push(address dst, uint wad) public {
         transferFrom(msg.sender, dst, wad);
     }
+
     function pull(address src, uint wad) public {
         transferFrom(src, msg.sender, wad);
     }
+
     function move(address src, address dst, uint wad) public {
         transferFrom(src, dst, wad);
     }
@@ -41,12 +43,15 @@ contract DSToken is ERC20, DSStop {
     function mint(uint wad) public {
         mint(msg.sender, wad);
     }
+
     function burn(uint wad) public {
         burn(msg.sender, wad);
     }
+
     function mint(address guy, uint wad) public auth stoppable {
         _mint(guy, wad);
     }
+
     function burn(address guy, uint wad) public auth stoppable {
         _burn(guy, wad);
     }
