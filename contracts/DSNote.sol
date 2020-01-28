@@ -2,24 +2,26 @@ pragma solidity >=0.5.16;
 
 contract DSNote {
     event LogNote(
-    bytes4   indexed  sig,
-    address  indexed  guy,
-    bytes32  indexed  foo,
-    bytes32  indexed  bar,
-    uint	 	  wad,
-    bytes             fax
+        bytes4   indexed  sig,
+        address  indexed  guy,
+        bytes32  indexed  foo,
+        bytes32  indexed  bar,
+        uint256           wad,
+        bytes             fax
     ) anonymous;
 
     modifier note {
         bytes32 foo;
         bytes32 bar;
+        uint256 wad;
 
         assembly {
-        foo := calldataload(4)
-        bar := calldataload(36)
+            foo := calldataload(4)
+            bar := calldataload(36)
+            wad := callvalue
         }
 
-        LogNote(msg.sig, msg.sender, foo, bar, msg.value, msg.data);
+        emit LogNote(msg.sig, msg.sender, foo, bar, wad, msg.data);
 
         _;
     }
