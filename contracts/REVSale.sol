@@ -59,7 +59,7 @@ contract REVSale is DSAuth, DSExec {
         assert(rev.totalSupply() == 0);
 
         REV = rev;
-        REV.mint(totalSupply);
+        REV.mint(address(this), totalSupply);
 
         // @TODO: guess we don't need that?
         // Address 0xb1 is provably non-transferrable
