@@ -2,13 +2,13 @@ pragma solidity >=0.5.16;
 
 import './DSAuth.sol';
 import './DSExec.sol';
-import './DSToken.sol';
+import './REVToken.sol';
 import './SafeMath.sol';
 
 contract REVSale is DSAuth, DSExec {
     using SafeMath for uint256;
 
-    DSToken  public  REV;                  // The REV token itself
+    REVToken public  REV;                  // The REV token itself
     uint     public  totalSupply;          // Total REV amount created
     uint     public  foundersAllocation;   // Amount given to founders
     string   public  foundersKey;          // Public key of founders
@@ -53,7 +53,7 @@ contract REVSale is DSAuth, DSExec {
         assert(openTime < startTime);
     }
 
-    function initialize(DSToken rev) public auth {
+    function initialize(REVToken rev) public auth {
         assert(address(REV) == address(0));
         assert(rev.owner() == address(this));
         assert(rev.authority() == DSAuthority(0));

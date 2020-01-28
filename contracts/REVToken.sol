@@ -3,7 +3,7 @@ pragma solidity >=0.5.16;
 import './ERC20.sol';
 import './DSStop.sol';
 
-contract DSToken is ERC20, DSStop {
+contract REVToken is ERC20, DSStop {
 
     bytes32  public  symbol;
     uint256  public  decimals = 18; // standard token precision. override to customize
