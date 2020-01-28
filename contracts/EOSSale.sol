@@ -29,14 +29,14 @@ contract EOSSale is DSAuth, DSExec, DSMath {
     event LogCollect  (uint amount);
     event LogFreeze   ();
 
-    function EOSSale(
-    uint     _numberOfDays,
-    uint128  _totalSupply,
-    uint     _openTime,
-    uint     _startTime,
-    uint128  _foundersAllocation,
-    string memory   _foundersKey
-    ) {
+    constructor(
+        uint     _numberOfDays,
+        uint128  _totalSupply,
+        uint     _openTime,
+        uint     _startTime,
+        uint128  _foundersAllocation,
+        string memory   _foundersKey
+    ) public {
         numberOfDays       = _numberOfDays;
         totalSupply        = _totalSupply;
         openTime           = _openTime;
@@ -45,7 +45,7 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         foundersKey        = _foundersKey;
 
         createFirstDay = wmul(totalSupply, 0.2 ether);
-        createPerDay = div(
+        createPerDay = wdiv(
         sub(sub(totalSupply, foundersAllocation), createFirstDay),
         numberOfDays
         );
@@ -55,7 +55,7 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         assert(openTime < startTime);
     }
 
-    function initialize(DSToken eos) auth {
+    function initialize(DSToken eos) public auth {
         assert(address(EOS) == address(0));
         assert(eos.owner() == address(this));
         assert(eos.authority() == DSAuthority(0));
@@ -70,30 +70,30 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         emit LogRegister(address(0xb1), foundersKey);
     }
 
-    function time() view returns (uint) {
+    function time() public view returns (uint) {
         return block.timestamp;
     }
 
-    function today() view returns (uint) {
+    function today() public view returns (uint) {
         return dayFor(time());
     }
 
     // Each window is 23 hours long so that end-of-window rotates
     // around the clock for all timezones.
-    function dayFor(uint timestamp) view returns (uint) {
+    function dayFor(uint timestamp) public view returns (uint) {
         return timestamp < startTime
         ? 0
         : sub(timestamp, startTime) / 23 hours + 1;
     }
 
-    function createOnDay(uint day) view returns (uint) {
+    function createOnDay(uint day) public view returns (uint) {
         return day == 0 ? createFirstDay : createPerDay;
     }
 
     // This method provides the buyer some protections regarding which
     // day the buy order is submitted and the maximum price prior to
     // applying this payment that will be allowed.
-    function buyWithLimit(uint day, uint limit) payable {
+    function buyWithLimit(uint day, uint limit) public payable {
         assert(time() >= openTime && today() <= numberOfDays);
         assert(msg.value >= 0.01 ether);
 
@@ -110,15 +110,15 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         emit LogBuy(day, msg.sender, msg.value);
     }
 
-    function buy() payable {
+    function buy() public payable {
         buyWithLimit(today(), 0);
     }
 
-    function () payable {
+    function () external payable {
         buy();
     }
 
-    function claim(uint day) {
+    function claim(uint day) public {
         assert(today() > day);
 
         if (claimed[day][msg.sender] || dailyTotals[day] == 0) {
@@ -129,10 +129,10 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         // going to be truncated to 8 decimal places or less anyway
         // when launched on its own chain.
 
-        uint128 dailyTotal = cast(dailyTotals[day]);
-        uint128 userTotal  = cast(userBuys[day][msg.sender]);
-        uint128 price      = wdiv(cast(createOnDay(day)), dailyTotal);
-        uint128 reward     = wmul(price, userTotal);
+        uint256 dailyTotal = dailyTotals[day];
+        uint256 userTotal  = userBuys[day][msg.sender];
+        uint256 price      = wdiv(createOnDay(day), dailyTotal);
+        uint256 reward     = wmul(price, userTotal);
 
         claimed[day][msg.sender] = true;
         EOS.push(msg.sender, reward);
@@ -140,7 +140,7 @@ contract EOSSale is DSAuth, DSExec, DSMath {
         emit LogClaim(day, msg.sender, reward);
     }
 
-    function claimAll() {
+    function claimAll() public {
         for (uint i = 0; i < today(); i++) {
             claim(i);
         }
@@ -149,7 +149,7 @@ contract EOSSale is DSAuth, DSExec, DSMath {
     // Value should be a public key.  Read full key import policy.
     // Manually registering requires a base58
     // encoded using the STEEM, BTS, or EOS public key format.
-    function register(string memory key) {
+    function register(string memory key) public {
         assert(today() <=  numberOfDays + 1);
         assert(bytes(key).length <= 64);
 
@@ -159,14 +159,14 @@ contract EOSSale is DSAuth, DSExec, DSMath {
     }
 
     // Crowdsale owners can collect ETH any number of times
-    function collect() auth {
+    function collect() public auth {
         assert(today() > 0); // Prevent recycling during window 0
         exec(msg.sender, address(this).balance);
         emit LogCollect(address(this).balance);
     }
 
     // Anyone can freeze the token 1 day after the sale ends
-    function freeze() {
+    function freeze() public {
         assert(today() > numberOfDays + 1);
         EOS.stop();
         emit LogFreeze();
