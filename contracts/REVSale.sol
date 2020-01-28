@@ -142,11 +142,4 @@ contract REVSale is DSAuth, DSExec {
         exec(msg.sender, address(this).balance);
         emit LogCollect(address(this).balance);
     }
-
-    // Anyone can freeze the token 1 day after the sale ends
-    function freeze() public {
-        assert(today() > numberOfDays + 1);
-        REV.stop();
-        emit LogFreeze();
-    }
 }
