@@ -1,9 +1,9 @@
 pragma solidity >=0.5.16;
 
-import './DSTokenBase.sol';
+import './ERC20.sol';
 import './DSStop.sol';
 
-contract DSToken is DSTokenBase(0), DSStop {
+contract DSToken is ERC20, DSStop {
 
     bytes32  public  symbol;
     uint256  public  decimals = 18; // standard token precision. override to customize
@@ -11,9 +11,6 @@ contract DSToken is DSTokenBase(0), DSStop {
     constructor(bytes32 symbol_) public {
         symbol = symbol_;
     }
-
-    event Mint(address indexed guy, uint wad);
-    event Burn(address indexed guy, uint wad);
 
     function approve(address guy) public stoppable returns (bool) {
         return super.approve(guy, uint(-1));
@@ -28,18 +25,7 @@ contract DSToken is DSTokenBase(0), DSStop {
     stoppable
     returns (bool)
     {
-        if (src != msg.sender && _approvals[src][msg.sender] != uint(-1)) {
-            require(_approvals[src][msg.sender] >= wad, "ds-token-insufficient-approval");
-            _approvals[src][msg.sender] = _approvals[src][msg.sender].sub(wad);
-        }
-
-        require(_balances[src] >= wad, "ds-token-insufficient-balance");
-        _balances[src] = _balances[src].sub(wad);
-        _balances[dst] = _balances[dst].add(wad);
-
-        emit Transfer(src, dst, wad);
-
-        return true;
+        return super.transferFrom(src, dst, wad);
     }
 
     function push(address dst, uint wad) public {
@@ -59,20 +45,10 @@ contract DSToken is DSTokenBase(0), DSStop {
         burn(msg.sender, wad);
     }
     function mint(address guy, uint wad) public auth stoppable {
-        _balances[guy] = _balances[guy].add(wad);
-        _supply = _supply.add(wad);
-        emit Mint(guy, wad);
+        _mint(guy, wad);
     }
     function burn(address guy, uint wad) public auth stoppable {
-        if (guy != msg.sender && _approvals[guy][msg.sender] != uint(-1)) {
-            require(_approvals[guy][msg.sender] >= wad, "ds-token-insufficient-approval");
-            _approvals[guy][msg.sender] = _approvals[guy][msg.sender].sub(wad);
-        }
-
-        require(_balances[guy] >= wad, "ds-token-insufficient-balance");
-        _balances[guy] = _balances[guy].sub(wad);
-        _supply = _supply.sub(wad);
-        emit Burn(guy, wad);
+        _burn(guy, wad);
     }
 
     // Optional token name
