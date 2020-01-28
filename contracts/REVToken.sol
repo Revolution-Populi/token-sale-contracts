@@ -12,45 +12,37 @@ contract REVToken is ERC20, DSStop {
         symbol = symbol_;
     }
 
-    function approve(address guy) public stoppable returns (bool) {
-        return super.approve(guy, uint(-1));
+    function approve(address spender) public stoppable returns (bool) {
+        return super.approve(spender, uint(-1));
     }
 
-    function approve(address guy, uint wad) public stoppable returns (bool) {
-        return super.approve(guy, wad);
+    function approve(address spender, uint amount) public stoppable returns (bool) {
+        return super.approve(spender, amount);
     }
 
-    function transferFrom(address src, address dst, uint wad) public stoppable returns (bool)
+    function transferFrom(address src, address dst, uint amount) public stoppable returns (bool)
     {
-        return super.transferFrom(src, dst, wad);
+        return super.transferFrom(src, dst, amount);
     }
 
-    function push(address dst, uint wad) public {
-        transferFrom(msg.sender, dst, wad);
+    function push(address dst, uint amount) public {
+        transferFrom(msg.sender, dst, amount);
     }
 
-    function pull(address src, uint wad) public {
-        transferFrom(src, msg.sender, wad);
+    function mint(uint amount) public {
+        mint(msg.sender, amount);
     }
 
-    function move(address src, address dst, uint wad) public {
-        transferFrom(src, dst, wad);
+    function burn(uint amount) public {
+        burn(msg.sender, amount);
     }
 
-    function mint(uint wad) public {
-        mint(msg.sender, wad);
+    function mint(address account, uint amount) public auth stoppable {
+        _mint(account, amount);
     }
 
-    function burn(uint wad) public {
-        burn(msg.sender, wad);
-    }
-
-    function mint(address guy, uint wad) public auth stoppable {
-        _mint(guy, wad);
-    }
-
-    function burn(address guy, uint wad) public auth stoppable {
-        _burn(guy, wad);
+    function burn(address account, uint amount) public auth stoppable {
+        _burn(account, amount);
     }
 
     function setName(bytes32 name_) public auth {
