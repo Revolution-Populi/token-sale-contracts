@@ -4,6 +4,7 @@ import './DSAuth.sol';
 import './DSExec.sol';
 import './REVToken.sol';
 import './SafeMath.sol';
+import './Creator.sol';
 
 contract REVSale is DSAuth, DSExec {
     using SafeMath for uint256;
@@ -20,6 +21,9 @@ contract REVSale is DSAuth, DSExec {
     uint     public  numberOfDays;         // Number of windows after 0
     uint     public  createPerDay;         // Tokens sold in each window
 
+    uint     public  totalBoughtTokens;
+    uint     public  totalRaisedETH;
+
     mapping(uint => uint)                      public  dailyTotals;
     mapping(uint => mapping(address => uint))  public  userBuys;
     mapping(uint => mapping(address => bool))  public  claimed;
@@ -29,14 +33,26 @@ contract REVSale is DSAuth, DSExec {
     event LogCollect  (uint amount);
     event LogFreeze   ();
 
-    constructor(
+    constructor(Creator creator) public {
+        REV = creator.createToken();
+
+        require(REV.owner() == address(this), "Invalid owner of the REVToken");
+        require(REV.authority() == DSAuthority(0), "Invalid authority of the REVToken");
+        require(REV.totalSupply() == 0, "Total supply of REVToken should be 0");
+    }
+
+    function initialize(
         uint _numberOfDays,
-        uint128 _totalSupply,
+        uint _totalSupply,
         uint _openTime,
         uint _startTime,
-        uint128 _foundersAllocation,
+        uint _foundersAllocation,
         string memory _foundersKey
-    ) public {
+    ) public auth {
+        require(numberOfDays > 0, "numberOfDays should be > 0");
+        require(totalSupply > foundersAllocation, "totalSupply should be > foundersAllocation");
+        require(openTime < startTime, "openTime should be < startTime");
+
         numberOfDays = _numberOfDays;
         totalSupply = _totalSupply;
         openTime = _openTime;
@@ -45,20 +61,8 @@ contract REVSale is DSAuth, DSExec {
         foundersKey = _foundersKey;
 
         createFirstDay = totalSupply.mul(0.2 ether);
-        createPerDay = ((totalSupply.sub(foundersAllocation)).sub(createFirstDay)).div(numberOfDays);
+        createPerDay = (totalSupply.sub(foundersAllocation).sub(createFirstDay)).div(numberOfDays);
 
-        assert(numberOfDays > 0);
-        assert(totalSupply > foundersAllocation);
-        assert(openTime < startTime);
-    }
-
-    function initialize(REVToken rev) public auth {
-        assert(address(REV) == address(0));
-        assert(rev.owner() == address(this));
-        assert(rev.authority() == DSAuthority(0));
-        assert(rev.totalSupply() == 0);
-
-        REV = rev;
         REV.mint(address(this), totalSupply);
     }
 
