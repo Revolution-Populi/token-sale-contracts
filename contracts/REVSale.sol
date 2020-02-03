@@ -10,11 +10,10 @@ contract REVSale is DSAuth, DSExec {
     using SafeMath for uint256;
 
     uint constant MIN_ETH = 1 ether;
+    uint constant FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
 
     REVToken public REV;                   // The REV token itself
     uint     public totalSupply;           // Total REV amount created
-    uint     public foundersAllocation;    // Amount given to founders
-    string   public foundersKey;           // Public key of founders
 
     uint     public firstWindowStartTime;  // Time of window 1 opening
     uint     public createPerFirstWindow;  // Tokens sold in window 1
@@ -48,13 +47,10 @@ contract REVSale is DSAuth, DSExec {
         uint _totalSupply,
         uint _firstWindowStartTime,
         uint _otherWindowsStartTime,
-        uint _foundersAllocation,
-        string memory _foundersKey,
         uint _bulkPurchaseTokens,
         address _bulkPurchaseAddress
     ) public auth {
         require(_numberOfOtherWindows > 0, "_numberOfOtherWindows should be > 0");
-        require(_totalSupply > _foundersAllocation, "_totalSupply should be > _foundersAllocation");
         require(_firstWindowStartTime < _otherWindowsStartTime, "_firstWindowStartTime should be < _otherWindowsStartTime");
         require(_bulkPurchaseTokens <= _totalSupply, "_bulkPurchaseTokens should be <= _totalSupply");
         require(_bulkPurchaseAddress != address(0x0), "_bulkPurchaseAddress is invalid");
@@ -63,11 +59,9 @@ contract REVSale is DSAuth, DSExec {
         totalSupply = _totalSupply;
         firstWindowStartTime = _firstWindowStartTime;
         otherWindowsStartTime = _otherWindowsStartTime;
-        foundersAllocation = _foundersAllocation;
-        foundersKey = _foundersKey;
 
-        createPerFirstWindow = totalSupply.mul(0.2 ether);
-        createPerOtherWindow = (totalSupply.sub(foundersAllocation).sub(createPerFirstWindow)).div(numberOfOtherWindows);
+        createPerFirstWindow = totalSupply.mul(FIRST_WINDOW_MULTIPLIER);
+        createPerOtherWindow = totalSupply.sub(createPerFirstWindow).div(numberOfOtherWindows);
 
         REV.mint(address(this), totalSupply);
 
