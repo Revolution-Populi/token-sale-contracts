@@ -9,6 +9,8 @@ import './Creator.sol';
 contract REVSale is DSAuth, DSExec {
     using SafeMath for uint256;
 
+    uint constant MIN_ETH = 1 ether;
+
     REVToken public  REV;                  // The REV token itself
     uint     public  totalSupply;          // Total REV amount created
     uint     public  foundersAllocation;   // Amount given to founders
@@ -47,11 +49,15 @@ contract REVSale is DSAuth, DSExec {
         uint _openTime,
         uint _startTime,
         uint _foundersAllocation,
-        string memory _foundersKey
+        string memory _foundersKey,
+        uint _bulkPurchaseTokens,
+        address _bulkPurchaseAddress
     ) public auth {
-        require(numberOfDays > 0, "numberOfDays should be > 0");
-        require(totalSupply > foundersAllocation, "totalSupply should be > foundersAllocation");
-        require(openTime < startTime, "openTime should be < startTime");
+        require(_numberOfDays > 0, "_numberOfDays should be > 0");
+        require(_totalSupply > _foundersAllocation, "_totalSupply should be > _foundersAllocation");
+        require(_openTime < _startTime, "_openTime should be < _startTime");
+        require(_bulkPurchaseTokens <= _totalSupply, "_bulkPurchaseTokens should be <= _totalSupply");
+        require(_bulkPurchaseAddress != address(0x0), "_bulkPurchaseAddress is invalid");
 
         numberOfDays = _numberOfDays;
         totalSupply = _totalSupply;
@@ -64,6 +70,10 @@ contract REVSale is DSAuth, DSExec {
         createPerDay = (totalSupply.sub(foundersAllocation).sub(createFirstDay)).div(numberOfDays);
 
         REV.mint(address(this), totalSupply);
+
+        if (_bulkPurchaseTokens > 0) {
+            REV.transfer(_bulkPurchaseAddress, _bulkPurchaseTokens);
+        }
     }
 
     function time() public view returns (uint) {
@@ -91,7 +101,7 @@ contract REVSale is DSAuth, DSExec {
     // applying this payment that will be allowed.
     function buyWithLimit(uint day, uint limit) public payable {
         assert(time() >= openTime && today() <= numberOfDays);
-        assert(msg.value >= 0.01 ether);
+        assert(msg.value >= MIN_ETH);
 
         assert(day >= today());
         assert(day <= numberOfDays);
