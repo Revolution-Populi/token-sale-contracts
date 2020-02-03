@@ -11,20 +11,20 @@ contract REVSale is DSAuth, DSExec {
 
     uint constant MIN_ETH = 1 ether;
 
-    REVToken public  REV;                  // The REV token itself
-    uint     public  totalSupply;          // Total REV amount created
-    uint     public  foundersAllocation;   // Amount given to founders
-    string   public  foundersKey;          // Public key of founders
+    REVToken public REV;                   // The REV token itself
+    uint     public totalSupply;           // Total REV amount created
+    uint     public foundersAllocation;    // Amount given to founders
+    string   public foundersKey;           // Public key of founders
 
-    uint     public  openTime;             // Time of window 0 opening
-    uint     public  createFirstDay;       // Tokens sold in window 0
+    uint     public firstWindowStartTime;  // Time of window 1 opening
+    uint     public createPerFirstWindow;  // Tokens sold in window 1
 
-    uint     public  startTime;            // Time of window 1 opening
-    uint     public  numberOfDays;         // Number of windows after 0
-    uint     public  createPerDay;         // Tokens sold in each window
+    uint     public otherWindowsStartTime; // Time of other windows opening
+    uint     public numberOfOtherWindows;  // Number of other windows
+    uint     public createPerOtherWindow;  // Tokens sold in each window after window 1
 
-    uint     public  totalBoughtTokens;
-    uint     public  totalRaisedETH;
+    uint     public totalBoughtTokens;
+    uint     public totalRaisedETH;
 
     mapping(uint => uint)                      public  dailyTotals;
     mapping(uint => mapping(address => uint))  public  userBuys;
@@ -44,30 +44,30 @@ contract REVSale is DSAuth, DSExec {
     }
 
     function initialize(
-        uint _numberOfDays,
+        uint _numberOfOtherWindows,
         uint _totalSupply,
-        uint _openTime,
-        uint _startTime,
+        uint _firstWindowStartTime,
+        uint _otherWindowsStartTime,
         uint _foundersAllocation,
         string memory _foundersKey,
         uint _bulkPurchaseTokens,
         address _bulkPurchaseAddress
     ) public auth {
-        require(_numberOfDays > 0, "_numberOfDays should be > 0");
+        require(_numberOfOtherWindows > 0, "_numberOfOtherWindows should be > 0");
         require(_totalSupply > _foundersAllocation, "_totalSupply should be > _foundersAllocation");
-        require(_openTime < _startTime, "_openTime should be < _startTime");
+        require(_firstWindowStartTime < _otherWindowsStartTime, "_firstWindowStartTime should be < _otherWindowsStartTime");
         require(_bulkPurchaseTokens <= _totalSupply, "_bulkPurchaseTokens should be <= _totalSupply");
         require(_bulkPurchaseAddress != address(0x0), "_bulkPurchaseAddress is invalid");
 
-        numberOfDays = _numberOfDays;
+        numberOfOtherWindows = _numberOfOtherWindows;
         totalSupply = _totalSupply;
-        openTime = _openTime;
-        startTime = _startTime;
+        firstWindowStartTime = _firstWindowStartTime;
+        otherWindowsStartTime = _otherWindowsStartTime;
         foundersAllocation = _foundersAllocation;
         foundersKey = _foundersKey;
 
-        createFirstDay = totalSupply.mul(0.2 ether);
-        createPerDay = (totalSupply.sub(foundersAllocation).sub(createFirstDay)).div(numberOfDays);
+        createPerFirstWindow = totalSupply.mul(0.2 ether);
+        createPerOtherWindow = (totalSupply.sub(foundersAllocation).sub(createPerFirstWindow)).div(numberOfOtherWindows);
 
         REV.mint(address(this), totalSupply);
 
@@ -87,24 +87,24 @@ contract REVSale is DSAuth, DSExec {
     // Each window is 23 hours long so that end-of-window rotates
     // around the clock for all timezones.
     function dayFor(uint timestamp) public view returns (uint) {
-        return timestamp < startTime
+        return timestamp < otherWindowsStartTime
         ? 0
-        : timestamp.sub(startTime) / 23 hours + 1;
+        : timestamp.sub(otherWindowsStartTime) / 23 hours + 1;
     }
 
     function createOnDay(uint day) public view returns (uint) {
-        return day == 0 ? createFirstDay : createPerDay;
+        return day == 0 ? createPerFirstWindow : createPerOtherWindow;
     }
 
     // This method provides the buyer some protections regarding which
     // day the buy order is submitted and the maximum price prior to
     // applying this payment that will be allowed.
     function buyWithLimit(uint day, uint limit) public payable {
-        assert(time() >= openTime && today() <= numberOfDays);
+        assert(time() >= firstWindowStartTime && today() <= numberOfOtherWindows);
         assert(msg.value >= MIN_ETH);
 
         assert(day >= today());
-        assert(day <= numberOfDays);
+        assert(day <= numberOfOtherWindows);
 
         userBuys[day][msg.sender] += msg.value;
         dailyTotals[day] += msg.value;
