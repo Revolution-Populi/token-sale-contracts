@@ -60,10 +60,13 @@ contract REVSale is DSAuth, DSExec {
         firstWindowStartTime = _firstWindowStartTime;
         otherWindowsStartTime = _otherWindowsStartTime;
 
-        createPerFirstWindow = totalSupply.mul(FIRST_WINDOW_MULTIPLIER);
-        createPerOtherWindow = totalSupply.sub(createPerFirstWindow).div(numberOfOtherWindows);
-
         REV.mint(address(this), totalSupply);
+
+        uint countOfDaysInFirstWindow = (otherWindowsStartTime - firstWindowStartTime).div(1 days);
+        uint totalWindowCount = countOfDaysInFirstWindow.add(numberOfOtherWindows);
+
+        createPerFirstWindow = totalSupply.div(totalWindowCount).mul(FIRST_WINDOW_MULTIPLIER).mul(countOfDaysInFirstWindow);
+        createPerOtherWindow = totalSupply.sub(createPerFirstWindow).div(numberOfOtherWindows);
 
         if (_bulkPurchaseTokens > 0) {
             REV.transfer(_bulkPurchaseAddress, _bulkPurchaseTokens);
@@ -75,39 +78,40 @@ contract REVSale is DSAuth, DSExec {
     }
 
     function today() public view returns (uint) {
-        return dayFor(time());
+        return windowFor(time());
     }
 
     // Each window is 23 hours long so that end-of-window rotates
     // around the clock for all timezones.
-    function dayFor(uint timestamp) public view returns (uint) {
+    function windowFor(uint timestamp) public view returns (uint) {
         return timestamp < otherWindowsStartTime
         ? 0
         : timestamp.sub(otherWindowsStartTime) / 23 hours + 1;
     }
 
-    function createOnDay(uint day) public view returns (uint) {
-        return day == 0 ? createPerFirstWindow : createPerOtherWindow;
+    function createOnWindow(uint window) public view returns (uint) {
+        return window == 0 ? createPerFirstWindow : createPerOtherWindow;
     }
 
     // This method provides the buyer some protections regarding which
     // day the buy order is submitted and the maximum price prior to
     // applying this payment that will be allowed.
-    function buyWithLimit(uint day, uint limit) public payable {
+    function buyWithLimit(uint window, uint limit) public payable {
         assert(time() >= firstWindowStartTime && today() <= numberOfOtherWindows);
         assert(msg.value >= MIN_ETH);
 
-        assert(day >= today());
-        assert(day <= numberOfOtherWindows);
+        assert(window >= today());
+        assert(window <= numberOfOtherWindows);
 
-        userBuys[day][msg.sender] += msg.value;
-        dailyTotals[day] += msg.value;
+        userBuys[window][msg.sender] += msg.value;
+        dailyTotals[window] += msg.value;
 
+        // @TODO: should this condition be performed before dailyTotals is updated?
         if (limit != 0) {
-            assert(dailyTotals[day] <= limit);
+            assert(dailyTotals[window] <= limit);
         }
 
-        emit LogBuy(day, msg.sender, msg.value);
+        emit LogBuy(window, msg.sender, msg.value);
     }
 
     function buy() public payable {
@@ -118,23 +122,23 @@ contract REVSale is DSAuth, DSExec {
         buy();
     }
 
-    function claim(uint day) public {
-        assert(today() > day);
+    function claim(uint window) public {
+        assert(today() > window);
 
-        if (claimed[day][msg.sender] || dailyTotals[day] == 0) {
+        if (claimed[window][msg.sender] || dailyTotals[window] == 0) {
             return;
         }
 
-        uint256 dailyTotal = dailyTotals[day];
-        uint256 userTotal = userBuys[day][msg.sender];
-        uint256 price = createOnDay(day).div(dailyTotal);
+        uint256 dailyTotal = dailyTotals[window];
+        uint256 userTotal = userBuys[window][msg.sender];
+        uint256 price = createOnWindow(window).div(dailyTotal);
         uint256 reward = price.mul(userTotal);
 
-        claimed[day][msg.sender] = true;
+        claimed[window][msg.sender] = true;
 
         REV.transfer(msg.sender, reward);
 
-        emit LogClaim(day, msg.sender, reward);
+        emit LogClaim(window, msg.sender, reward);
     }
 
     function claimAll() public {
