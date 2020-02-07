@@ -3,7 +3,8 @@
 ## How to setup
 
 1. ```sudo make start```
-2. ```sudo make truffle COMMAND="compile"```
+2. ```sudo make npm-init```
+3. ```sudo make truffle COMMAND="compile"```
 
 ## Usage of development env
 

@@ -62,6 +62,12 @@ logs: ## Display current running containers logs (Press "Ctrl + c" to exit)
 	$(COMPOSE_CMD) logs -f
 
 ##
+##NPM
+npm-init: ## Executes truffle command
+	@echo 'Initializes NPM in [$(APP_ENV)] mode'
+	$(COMPOSE_CMD) exec truffle npm install
+
+##
 ##Truffle
 truffle: ## Executes truffle command
 	@echo 'Execute truffle command "$(COMMAND)" in [$(APP_ENV)] mode'
