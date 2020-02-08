@@ -29,6 +29,16 @@ contract REVSale is DSAuth, DSExec {
     mapping(uint => mapping(address => uint))  public  userBuys;
     mapping(uint => mapping(address => bool))  public  claimed;
 
+    event LogInit (
+        uint tokensToSell, 
+        uint checksum,
+        uint firstWindowDuration, 
+        uint otherWindowDuration, 
+        uint totalWindowDuration, 
+        uint createPerFirstWindow, 
+        uint createPerOtherWindow
+    );
+
     event LogBuy      (uint window, address user, uint amount);
     event LogClaim    (uint window, address user, uint amount);
     event LogCollect  (uint amount);
@@ -43,15 +53,16 @@ contract REVSale is DSAuth, DSExec {
     }
 
     function initialize(
-        uint _numberOfOtherWindows,
         uint _totalSupply,
         uint _firstWindowStartTime,
         uint _otherWindowsStartTime,
+        uint _numberOfOtherWindows,
         uint _bulkPurchaseTokens,
         address _bulkPurchaseAddress
     ) public auth {
-        require(_numberOfOtherWindows > 0, "_numberOfOtherWindows should be > 0");
+        require(_totalSupply > 0, "_totalSupply should be > 0");
         require(_firstWindowStartTime < _otherWindowsStartTime, "_firstWindowStartTime should be < _otherWindowsStartTime");
+        require(_numberOfOtherWindows > 0, "_numberOfOtherWindows should be > 0");
         require(_bulkPurchaseTokens <= _totalSupply, "_bulkPurchaseTokens should be <= _totalSupply");
         require(_bulkPurchaseAddress != address(0x0), "_bulkPurchaseAddress is invalid");
 
@@ -62,11 +73,24 @@ contract REVSale is DSAuth, DSExec {
 
         REV.mint(address(this), totalSupply);
 
-        uint countOfDaysInFirstWindow = (otherWindowsStartTime - firstWindowStartTime).div(1 days);
-        uint totalWindowCount = countOfDaysInFirstWindow.add(numberOfOtherWindows);
+        uint tokensToSell = totalSupply.sub(_bulkPurchaseTokens);
+        uint firstWindowDuration = otherWindowsStartTime.sub(firstWindowStartTime);
+        uint otherWindowDuration = numberOfOtherWindows.mul(1 days);
+        uint totalWindowDuration = otherWindowDuration.add(firstWindowDuration);
 
-        createPerFirstWindow = totalSupply.div(totalWindowCount).mul(FIRST_WINDOW_MULTIPLIER).mul(countOfDaysInFirstWindow);
-        createPerOtherWindow = totalSupply.sub(createPerFirstWindow).div(numberOfOtherWindows);
+        // Here is -1 REV token loss during calculations.
+        createPerFirstWindow = tokensToSell.div(totalWindowDuration).mul(FIRST_WINDOW_MULTIPLIER).mul(firstWindowDuration);
+        createPerOtherWindow = tokensToSell.sub(createPerFirstWindow).div(otherWindowDuration);
+
+        emit LogInit(
+            tokensToSell, 
+            createPerOtherWindow.mul(otherWindowDuration).add(createPerFirstWindow).add(_bulkPurchaseTokens),
+            firstWindowDuration, 
+            otherWindowDuration, 
+            totalWindowDuration, 
+            createPerFirstWindow, 
+            createPerOtherWindow
+        );
 
         if (_bulkPurchaseTokens > 0) {
             REV.transfer(_bulkPurchaseAddress, _bulkPurchaseTokens);
