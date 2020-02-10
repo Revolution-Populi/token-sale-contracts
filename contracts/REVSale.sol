@@ -32,7 +32,6 @@ contract REVSale is DSAuth, DSExec {
 
     event LogInit (
         uint tokensToSell,
-        uint checksum,
         uint firstWindowDuration,
         uint otherWindowDuration,
         uint totalWindowDuration,
@@ -82,17 +81,12 @@ contract REVSale is DSAuth, DSExec {
         createPerFirstWindow = tokensToSell.div(totalWindowDuration).mul(FIRST_WINDOW_MULTIPLIER).mul(firstWindowDuration);
         createPerOtherWindow = tokensToSell.sub(createPerFirstWindow).div(otherWindowDuration);
 
-        uint checksum = createPerOtherWindow.mul(otherWindowDuration).add(createPerFirstWindow).add(_bulkPurchaseTokens);
-
-        // require(checksum == totalSupply, "Checksum failed");
-
         if (_bulkPurchaseTokens > 0) {
             REV.transfer(_bulkPurchaseAddress, _bulkPurchaseTokens);
         }
 
         emit LogInit(
             tokensToSell,
-            checksum,
             firstWindowDuration,
             otherWindowDuration,
             totalWindowDuration,
