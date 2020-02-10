@@ -137,18 +137,18 @@ contract REVSale is DSAuth, DSExec {
     // day the buy order is submitted and the maximum price prior to
     // applying this payment that will be allowed.
     function buyWithLimit(uint window, uint limit) public payable {
-        assert(time() >= firstWindowStartTime && today() <= numberOfOtherWindows);
-        assert(msg.value >= MIN_ETH);
-
-        assert(window >= today());
-        assert(window <= numberOfOtherWindows);
+        require(time() >= firstWindowStartTime, "time() should be >= firstWindowStartTime");
+        require(today() <= numberOfOtherWindows, "today() should be <= numberOfOtherWindows");
+        require(msg.value >= MIN_ETH, "msg.value should be >= MIN_ETH");
+        require(window >= today(), "window should be >= today()");
+        require(window <= numberOfOtherWindows, "window should be <= numberOfOtherWindows");
 
         userBuys[window][msg.sender] += msg.value;
         dailyTotals[window] += msg.value;
 
         // @TODO: should this condition be performed before dailyTotals is updated?
         if (limit != 0) {
-            assert(dailyTotals[window] <= limit);
+            require(dailyTotals[window] <= limit, "dailyTotals[window] should be <= limit");
         }
 
         emit LogBuy(window, msg.sender, msg.value);
@@ -163,7 +163,7 @@ contract REVSale is DSAuth, DSExec {
     }
 
     function claim(uint window) public {
-        assert(today() > window);
+        require(today() > window, "today() should be > window");
 
         if (claimed[window][msg.sender] || dailyTotals[window] == 0) {
             return;
@@ -189,14 +189,16 @@ contract REVSale is DSAuth, DSExec {
 
     // Crowdsale owners can collect ETH any number of times
     function collect() public auth {
-        assert(today() > 0);
+        require(today() > 0, "today() should be > 0");
         // Prevent recycling during window 0
         exec(msg.sender, address(this).balance);
         emit LogCollect(address(this).balance);
     }
 
     function collectUnsoldTokens(uint window, address recepient) public auth {
-        assert(today() > 0 && window > 0 && window < today());
+        require(today() > 0, "today() should be > 0");
+        require(window > 0, "window should be > 0");
+        require(window < today(), "window should be < today()");
 
         uint unsoldTokens = unsoldTokensBeforeWindow(window);
 
