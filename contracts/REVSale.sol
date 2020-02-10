@@ -84,6 +84,12 @@ contract REVSale is DSAuth, DSExec {
 
         uint checksum = createPerOtherWindow.mul(otherWindowDuration).add(createPerFirstWindow).add(_bulkPurchaseTokens);
 
+        // require(checksum == totalSupply, "Checksum failed");
+
+        if (_bulkPurchaseTokens > 0) {
+            REV.transfer(_bulkPurchaseAddress, _bulkPurchaseTokens);
+        }
+
         emit LogInit(
             tokensToSell,
             checksum,
@@ -93,12 +99,6 @@ contract REVSale is DSAuth, DSExec {
             createPerFirstWindow,
             createPerOtherWindow
         );
-
-        // require(checksum == totalSupply, "Checksum failed");
-
-        if (_bulkPurchaseTokens > 0) {
-            REV.transfer(_bulkPurchaseAddress, _bulkPurchaseTokens);
-        }
     }
 
     function time() public view returns (uint) {

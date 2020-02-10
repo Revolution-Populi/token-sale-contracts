@@ -64,6 +64,16 @@ contract('REVSale', accounts => {
         assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createPerOtherWindow()).toString(10));
     });
 
+    it("should perform assertions while initializing", async () => {
+        let revSale = await REVSale.deployed();
+
+        await expectThrow(initializeRevSale(revSale, accounts, { totalSupply: 0 }), '_totalSupply should be > 0');
+        await expectThrow(initializeRevSale(revSale, accounts, { startTime: 10, otherStartTime: 9 }), '_firstWindowStartTime should be < _otherWindowsStartTime');
+        await expectThrow(initializeRevSale(revSale, accounts, { numberOfOtherWindows: 0 }), '_numberOfOtherWindows should be > 0');
+        await expectThrow(initializeRevSale(revSale, accounts, { bulkPurchaseTokens: 10, totalSupply: 9 }), '_bulkPurchaseTokens should be <= _totalSupply');
+        await expectThrow(initializeRevSale(revSale, accounts, { bulkPurchaseAddress: '0x0000000000000000000000000000000000000000' }), '_bulkPurchaseAddress is invalid');
+    });
+
     it("should return correct token amount while calling createOnWindow()", async () => {
         let revSale = await REVSale.deployed();
 
@@ -119,6 +129,13 @@ contract('REVSale', accounts => {
         );
     });
 
+    it("should throw an error while calling shouldBeBoughtTotalTokensBeforeWindow() with 0 value", async () => {
+        let revSale = await REVSale.deployed();
+
+        await initializeRevSale(revSale, accounts);
+        await expectThrow(revSale.shouldBeBoughtTotalTokensBeforeWindow(0), "window should be > 0");
+    });
+
     it("should return 0 while calling unsoldTokensBeforeWindow() without any purchases", async () => {
         let revSale = await REVSale.deployed();
 
@@ -136,6 +153,13 @@ contract('REVSale', accounts => {
             firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(DEFAULT_NUMBER_OF_OTHER_WINDOWS - 1)).toString(10),
             (await revSale.shouldBeBoughtTotalTokensBeforeWindow(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10)
         );
+    });
+
+    it("should throw an error while calling unsoldTokensBeforeWindow() with 0 value", async () => {
+        let revSale = await REVSale.deployed();
+
+        await initializeRevSale(revSale, accounts);
+        await expectThrow(revSale.shouldBeBoughtTotalTokensBeforeWindow(0), "window should be > 0");
     });
 
     it("should return 0 while calling today()", async () => {
