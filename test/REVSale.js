@@ -1,4 +1,5 @@
-const BigNumber = require('bignumber.js');
+import BigNumber from 'bignumber.js';
+import expectThrow from './helpers/expectThrow';
 
 const REVSale = artifacts.require('REVSale');
 const REVToken = artifacts.require('REVToken');
@@ -55,7 +56,7 @@ contract('REVSale', accounts => {
         let revToken = await REVToken.at(await revSale.REV());
 
         assert.equal(DEFAULT_TOTAL_SUPPLY, await revToken.totalSupply.call());
-        assert.equal(DEFAULT_TOTAL_SUPPLY - DEFAULT_BULK_PURCHASE_TOKENS, await revToken.balanceOf(await revSale.address));
+        assert.equal(DEFAULT_TOTAL_SUPPLY - DEFAULT_BULK_PURCHASE_TOKENS, await revToken.balanceOf(new String(revSale.address).valueOf()));
         assert.equal(DEFAULT_BULK_PURCHASE_TOKENS, await revToken.balanceOf(accounts[1]));
 
         // Check distribution per first and other windows
@@ -94,7 +95,7 @@ contract('REVSale', accounts => {
         assert.equal(3, await revSale.windowFor(otherStartTime + DEFAULT_WINDOW_DURATION_IN_SEC * 3));
     });
 
-    it("should return correct token amount while calling shouldBeBoughtTotalTokensOnWindow()", async () => {
+    it("should return correct token amount while calling shouldBeBoughtTotalTokensBeforeWindow()", async () => {
         let revSale = await REVSale.deployed();
 
         await initializeRevSale(revSale, accounts);
@@ -104,26 +105,21 @@ contract('REVSale', accounts => {
 
         assert.equal(
             firstPeriodTokens.toString(10),
-            (await revSale.shouldBeBoughtTotalTokensOnWindow(0)).toString(10)
+            (await revSale.shouldBeBoughtTotalTokensBeforeWindow(1)).toString(10)
         );
 
         assert.equal(
             firstPeriodTokens.plus(otherPeriodTokens).toString(10),
-            (await revSale.shouldBeBoughtTotalTokensOnWindow(1)).toString(10)
+            (await revSale.shouldBeBoughtTotalTokensBeforeWindow(2)).toString(10)
         );
 
         assert.equal(
-            firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(2)).toString(10),
-            (await revSale.shouldBeBoughtTotalTokensOnWindow(2)).toString(10)
-        );
-
-        assert.equal(
-            firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10),
-            (await revSale.shouldBeBoughtTotalTokensOnWindow(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10)
+            firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(DEFAULT_NUMBER_OF_OTHER_WINDOWS - 1)).toString(10),
+            (await revSale.shouldBeBoughtTotalTokensBeforeWindow(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10)
         );
     });
 
-    it("should return 0 while calling unsoldTokensOnWindow() without any purchases", async () => {
+    it("should return 0 while calling unsoldTokensBeforeWindow() without any purchases", async () => {
         let revSale = await REVSale.deployed();
 
         await initializeRevSale(revSale, accounts);
@@ -133,17 +129,20 @@ contract('REVSale', accounts => {
 
         assert.equal(
             firstPeriodTokens.toString(10),
-            (await revSale.shouldBeBoughtTotalTokensOnWindow(0)).toString(10)
+            (await revSale.shouldBeBoughtTotalTokensBeforeWindow(1)).toString(10)
         );
 
         assert.equal(
-            firstPeriodTokens.plus(otherPeriodTokens).toString(10),
-            (await revSale.shouldBeBoughtTotalTokensOnWindow(1)).toString(10)
+            firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(DEFAULT_NUMBER_OF_OTHER_WINDOWS - 1)).toString(10),
+            (await revSale.shouldBeBoughtTotalTokensBeforeWindow(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10)
         );
+    });
 
-        assert.equal(
-            firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10),
-            (await revSale.shouldBeBoughtTotalTokensOnWindow(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10)
-        );
+    it("should return 0 while calling today()", async () => {
+        let revSale = await REVSale.deployed();
+
+        await initializeRevSale(revSale, accounts);
+
+        assert.equal(0, (await revSale.today()).toString(10));
     });
 });

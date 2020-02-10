@@ -121,12 +121,16 @@ contract REVSale is DSAuth, DSExec {
         return window == 0 ? createPerFirstWindow : createPerOtherWindow;
     }
 
-    function shouldBeBoughtTotalTokensOnWindow(uint window) public view returns (uint) {
-        return window == 0 ? createPerFirstWindow : createPerOtherWindow.mul(window).add(createPerFirstWindow);
+    function shouldBeBoughtTotalTokensBeforeWindow(uint window) public view returns (uint) {
+        require(window > 0, "window should be > 0");
+
+        uint beforeWindow = window - 1;
+
+        return beforeWindow == 0 ? createPerFirstWindow : createPerOtherWindow.mul(beforeWindow).add(createPerFirstWindow);
     }
 
-    function unsoldTokensOnWindow(uint window) public view returns (uint) {
-        return shouldBeBoughtTotalTokensOnWindow(window).sub(totalBoughtTokens);
+    function unsoldTokensBeforeWindow(uint window) public view returns (uint) {
+        return shouldBeBoughtTotalTokensBeforeWindow(window).sub(totalBoughtTokens);
     }
 
     // This method provides the buyer some protections regarding which
@@ -167,7 +171,7 @@ contract REVSale is DSAuth, DSExec {
 
         uint256 dailyTotal = dailyTotals[window];
         uint256 userTotal = userBuys[window][msg.sender];
-        uint256 price = createOnWindow(window).add(unsoldTokensOnWindow(window)).div(dailyTotal);
+        uint256 price = createOnWindow(window).div(dailyTotal);
         uint256 reward = price.mul(userTotal);
 
         claimed[window][msg.sender] = true;
@@ -189,5 +193,15 @@ contract REVSale is DSAuth, DSExec {
         // Prevent recycling during window 0
         exec(msg.sender, address(this).balance);
         emit LogCollect(address(this).balance);
+    }
+
+    function collectUnsoldTokens(uint window, address recepient) public auth {
+        assert(today() > 0 && window > 0 && window < today());
+
+        uint unsoldTokens = unsoldTokensBeforeWindow(window);
+
+        if (unsoldTokens > 0) {
+            REV.transfer(recepient, unsoldTokens);
+        }
     }
 }
