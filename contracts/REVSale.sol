@@ -11,7 +11,7 @@ contract REVSale is DSAuth, DSExec {
 
     uint constant MIN_ETH = 1 ether;
     uint constant FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
-    uint constant WINDOW_DURATION = 24 hours; // @TODO: 23 hours?
+    uint constant WINDOW_DURATION = 23 hours;
 
     REVToken public REV;                   // The REV token itself
     uint     public totalSupply;           // Total REV amount created
