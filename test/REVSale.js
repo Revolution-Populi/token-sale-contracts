@@ -4,13 +4,22 @@ import expectThrow from './helpers/expectThrow';
 const REVSale = artifacts.require('REVSale');
 const REVToken = artifacts.require('REVToken');
 
-const DEFAULT_TOTAL_SUPPLY = '2000000000000000000000000000'; // 2 000 000 000 * 10**18
-const DEFAULT_BULK_PURCHASE_TOKENS = '1000000000000000000000'; // 1000 * 10**18
+const DEFAULT_TOTAL_SUPPLY = '2000000000000000000000000000'; // 2bn * 10^18
+const DEFAULT_BULK_PURCHASE_TOKENS = '0'; // currently 0, we don't know yet the number
+const DEFAULT_BULK_PURCHASE_ACCOUNT = '0x713F6b1C608784312974e6Fa4e03BdBac1748B01';
+const DEFAULT_MARKETING_ACCOUNT = '0xF2fb97fBF0B2Ad0830F7C2B9C73F0648BB5340E4';
+const DEFAULT_RESERVE_ACCOUNT = '0x0f02A52EbeFcce7104fc82B68756f4edC640523C';
+const DEFAULT_REVPOP_FOUNDATION_ACCOUNT = '0x049A9f8C12c23C0549b73960748645403DC443e3';
+const DEFAULT_REVPOP_COMPANY_ACCOUNT = '0x7bE0166D691fdDf4e5f0E50Cdd9Ab0666Ef8b41d';
+const DEFAULT_MARKETING_SHARE = '250000000000000000000000000'; // 250m * 10^18
+const DEFAULT_RESERVE_SHARE = '200000000000000000000000000'; // 200m * 10^18
+const DEFAULT_REVPOP_FOUNDATION_SHARE = '200000000000000000000000000'; // 200m * 10^18
+const DEFAULT_REVPOP_COMPANY_SHARE = '200000000000000000000000000'; // 200m * 10^18
 const DEFAULT_FIRST_PERIOD_DURATION_IN_SEC = 432000; // 5 days
 const DEFAULT_NUMBER_OF_OTHER_WINDOWS = 360;
 const DEFAULT_WINDOW_DURATION_IN_SEC = 82800; // 23 hours
-const DEFAULT_TOKENS_IN_FIRST_PERIOD = '85714242857142857142768000';
-const DEFAULT_TOKENS_IN_OTHER_PERIOD = '64220503124760371137';
+const DEFAULT_TOKENS_IN_FIRST_PERIOD = '49285714285714285713600000';
+const DEFAULT_TOKENS_IN_OTHER_PERIOD = '36926807760141093474';
 
 let initializeRevSale = async (revSale, accounts, customProps) => {
     let startTime = new Date().getTime();
@@ -21,7 +30,6 @@ let initializeRevSale = async (revSale, accounts, customProps) => {
         otherStartTime: startTime + DEFAULT_FIRST_PERIOD_DURATION_IN_SEC,
         numberOfOtherWindows: DEFAULT_NUMBER_OF_OTHER_WINDOWS,
         bulkPurchaseTokens: DEFAULT_BULK_PURCHASE_TOKENS,
-        bulkPurchaseAddress: accounts[1],
         ...customProps
     };
 
@@ -31,7 +39,6 @@ let initializeRevSale = async (revSale, accounts, customProps) => {
         props.otherStartTime,
         props.numberOfOtherWindows,
         props.bulkPurchaseTokens,
-        props.bulkPurchaseAddress,
         { from: accounts[0] }
     );
 };
@@ -56,12 +63,39 @@ contract('REVSale', accounts => {
         let revToken = await REVToken.at(await revSale.REV());
 
         assert.equal(DEFAULT_TOTAL_SUPPLY, await revToken.totalSupply.call());
-        assert.equal(DEFAULT_TOTAL_SUPPLY - DEFAULT_BULK_PURCHASE_TOKENS, await revToken.balanceOf(new String(revSale.address).valueOf()));
-        assert.equal(DEFAULT_BULK_PURCHASE_TOKENS, await revToken.balanceOf(accounts[1]));
+        assert.equal(
+            new BigNumber(DEFAULT_TOTAL_SUPPLY)
+                .minus(new BigNumber(DEFAULT_BULK_PURCHASE_TOKENS))
+                .minus(new BigNumber(DEFAULT_REVPOP_FOUNDATION_SHARE))
+                .minus(new BigNumber(DEFAULT_REVPOP_COMPANY_SHARE))
+                .minus(new BigNumber(DEFAULT_MARKETING_SHARE))
+                .minus(new BigNumber(DEFAULT_RESERVE_SHARE))
+                .toString(10),
+            (await revToken.balanceOf(new String(revSale.address).valueOf())).toString(10)
+        );
+
+        assert.equal(DEFAULT_BULK_PURCHASE_TOKENS, await revToken.balanceOf(DEFAULT_BULK_PURCHASE_ACCOUNT));
+        assert.equal(DEFAULT_RESERVE_SHARE, await revToken.balanceOf(DEFAULT_RESERVE_ACCOUNT));
+        assert.equal(DEFAULT_MARKETING_SHARE, await revToken.balanceOf(DEFAULT_MARKETING_ACCOUNT));
+        assert.equal(DEFAULT_REVPOP_COMPANY_SHARE, await revToken.balanceOf(DEFAULT_REVPOP_COMPANY_ACCOUNT));
+        assert.equal(DEFAULT_REVPOP_FOUNDATION_SHARE, await revToken.balanceOf(DEFAULT_REVPOP_FOUNDATION_ACCOUNT));
 
         // Check distribution per first and other windows
         assert.equal(DEFAULT_TOKENS_IN_FIRST_PERIOD, (await revSale.createPerFirstWindow()).toString(10));
         assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createPerOtherWindow()).toString(10));
+    });
+
+    it("should have correct wallets set up", async () => {
+        let revSale = await REVSale.deployed();
+
+        await initializeRevSale(revSale, accounts);
+
+        assert.equal('0x049A9f8C12c23C0549b73960748645403DC443e3', await revSale.wallets(0));
+        assert.equal('0x7bE0166D691fdDf4e5f0E50Cdd9Ab0666Ef8b41d', await revSale.wallets(1));
+        assert.equal('0xF2fb97fBF0B2Ad0830F7C2B9C73F0648BB5340E4', await revSale.wallets(2));
+        assert.equal('0x0f02A52EbeFcce7104fc82B68756f4edC640523C', await revSale.wallets(3));
+        assert.equal('0x713F6b1C608784312974e6Fa4e03BdBac1748B01', await revSale.wallets(4));
+        assert.equal('0x97000D1a83E3cd519308B444a21eCE69f4414658', await revSale.wallets(5));
     });
 
     it("should perform assertions while initializing", async () => {
@@ -71,7 +105,6 @@ contract('REVSale', accounts => {
         await expectThrow(initializeRevSale(revSale, accounts, { startTime: 10, otherStartTime: 9 }), '_firstWindowStartTime should be < _otherWindowsStartTime');
         await expectThrow(initializeRevSale(revSale, accounts, { numberOfOtherWindows: 0 }), '_numberOfOtherWindows should be > 0');
         await expectThrow(initializeRevSale(revSale, accounts, { bulkPurchaseTokens: 10, totalSupply: 9 }), '_bulkPurchaseTokens should be <= _totalSupply');
-        await expectThrow(initializeRevSale(revSale, accounts, { bulkPurchaseAddress: '0x0000000000000000000000000000000000000000' }), '_bulkPurchaseAddress is invalid');
     });
 
     it("should return correct token amount while calling createOnWindow()", async () => {

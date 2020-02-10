@@ -13,6 +13,35 @@ contract REVSale is DSAuth, DSExec {
     uint constant FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
     uint constant WINDOW_DURATION = 23 hours;
 
+    uint constant MARKETING_SHARE = 250000000 ether;
+    uint constant RESERVE_SHARE = 200000000 ether;
+    uint constant REVPOP_FOUNDATION_SHARE = 200000000 ether;
+    uint constant REVPOP_FOUNDATION_FREQUENCY = 365 days;
+    uint constant REVPOP_FOUNDATION_DURATION = 3650 days; // 10 years
+    uint constant REVPOP_COMPANY_SHARE = 200000000 ether;
+    uint constant REVPOP_COMPANY_FREQUENCY = 365 days;
+    uint constant REVPOP_COMPANY_DURATION = 3650 days; // 10 years
+
+    address[6] public wallets = [
+        // RevPop.org foundation
+        0x049A9f8C12c23C0549b73960748645403DC443e3,
+
+        // RevPop the company
+        0x7bE0166D691fdDf4e5f0E50Cdd9Ab0666Ef8b41d,
+
+        // Marketing
+        0xF2fb97fBF0B2Ad0830F7C2B9C73F0648BB5340E4,
+
+        // Reserve currency
+        0x0f02A52EbeFcce7104fc82B68756f4edC640523C,
+
+        // Bulk purchase account
+        0x713F6b1C608784312974e6Fa4e03BdBac1748B01,
+
+        // Unsold tokens taker
+        0x97000D1a83E3cd519308B444a21eCE69f4414658
+    ];
+
     REVToken public REV;                   // The REV token itself
     uint     public totalSupply;           // Total REV amount created
 
@@ -57,14 +86,12 @@ contract REVSale is DSAuth, DSExec {
         uint _firstWindowStartTime,
         uint _otherWindowsStartTime,
         uint _numberOfOtherWindows,
-        uint _bulkPurchaseTokens,
-        address _bulkPurchaseAddress
+        uint _bulkPurchaseTokens
     ) public auth {
         require(_totalSupply > 0, "_totalSupply should be > 0");
         require(_firstWindowStartTime < _otherWindowsStartTime, "_firstWindowStartTime should be < _otherWindowsStartTime");
         require(_numberOfOtherWindows > 0, "_numberOfOtherWindows should be > 0");
         require(_bulkPurchaseTokens <= _totalSupply, "_bulkPurchaseTokens should be <= _totalSupply");
-        require(_bulkPurchaseAddress != address(0x0), "_bulkPurchaseAddress is invalid");
 
         numberOfOtherWindows = _numberOfOtherWindows;
         totalSupply = _totalSupply;
@@ -73,7 +100,13 @@ contract REVSale is DSAuth, DSExec {
 
         REV.mint(address(this), totalSupply);
 
-        uint tokensToSell = totalSupply.sub(_bulkPurchaseTokens);
+        uint tokensToSell = totalSupply
+            .sub(_bulkPurchaseTokens)
+            .sub(MARKETING_SHARE)
+            .sub(RESERVE_SHARE)
+            .sub(REVPOP_COMPANY_SHARE)
+            .sub(REVPOP_FOUNDATION_SHARE);
+
         uint firstWindowDuration = otherWindowsStartTime.sub(firstWindowStartTime);
         uint otherWindowDuration = numberOfOtherWindows.mul(WINDOW_DURATION);
         uint totalWindowDuration = otherWindowDuration.add(firstWindowDuration);
@@ -81,8 +114,15 @@ contract REVSale is DSAuth, DSExec {
         createPerFirstWindow = tokensToSell.div(totalWindowDuration).mul(FIRST_WINDOW_MULTIPLIER).mul(firstWindowDuration);
         createPerOtherWindow = tokensToSell.sub(createPerFirstWindow).div(otherWindowDuration);
 
+        // @TODO: change to allocation SC
+        REV.transfer(wallets[0], REVPOP_FOUNDATION_SHARE);
+        REV.transfer(wallets[1], REVPOP_COMPANY_SHARE);
+
+        REV.transfer(wallets[2], MARKETING_SHARE);
+        REV.transfer(wallets[3], RESERVE_SHARE);
+
         if (_bulkPurchaseTokens > 0) {
-            REV.transfer(_bulkPurchaseAddress, _bulkPurchaseTokens);
+            REV.transfer(wallets[4], _bulkPurchaseTokens);
         }
 
         emit LogInit(
@@ -189,7 +229,7 @@ contract REVSale is DSAuth, DSExec {
         emit LogCollect(address(this).balance);
     }
 
-    function collectUnsoldTokens(uint window, address recepient) public auth {
+    function collectUnsoldTokens(uint window) public auth {
         require(today() > 0, "today() should be > 0");
         require(window > 0, "window should be > 0");
         require(window < today(), "window should be < today()");
@@ -197,7 +237,7 @@ contract REVSale is DSAuth, DSExec {
         uint unsoldTokens = unsoldTokensBeforeWindow(window);
 
         if (unsoldTokens > 0) {
-            REV.transfer(recepient, unsoldTokens);
+            REV.transfer(wallets[5], unsoldTokens);
         }
     }
 }
