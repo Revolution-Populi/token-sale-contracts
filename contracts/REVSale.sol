@@ -11,6 +11,7 @@ contract REVSale is DSAuth, DSExec {
 
     uint constant MIN_ETH = 1 ether;
     uint constant FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
+    uint constant WINDOW_DURATION = 24 hours; // @TODO: 23 hours?
 
     REVToken public REV;                   // The REV token itself
     uint     public totalSupply;           // Total REV amount created
@@ -30,12 +31,12 @@ contract REVSale is DSAuth, DSExec {
     mapping(uint => mapping(address => bool))  public  claimed;
 
     event LogInit (
-        uint tokensToSell, 
+        uint tokensToSell,
         uint checksum,
-        uint firstWindowDuration, 
-        uint otherWindowDuration, 
-        uint totalWindowDuration, 
-        uint createPerFirstWindow, 
+        uint firstWindowDuration,
+        uint otherWindowDuration,
+        uint totalWindowDuration,
+        uint createPerFirstWindow,
         uint createPerOtherWindow
     );
 
@@ -75,22 +76,25 @@ contract REVSale is DSAuth, DSExec {
 
         uint tokensToSell = totalSupply.sub(_bulkPurchaseTokens);
         uint firstWindowDuration = otherWindowsStartTime.sub(firstWindowStartTime);
-        uint otherWindowDuration = numberOfOtherWindows.mul(1 days);
+        uint otherWindowDuration = numberOfOtherWindows.mul(WINDOW_DURATION);
         uint totalWindowDuration = otherWindowDuration.add(firstWindowDuration);
 
-        // Here is -1 REV token loss during calculations.
         createPerFirstWindow = tokensToSell.div(totalWindowDuration).mul(FIRST_WINDOW_MULTIPLIER).mul(firstWindowDuration);
         createPerOtherWindow = tokensToSell.sub(createPerFirstWindow).div(otherWindowDuration);
 
+        uint checksum = createPerOtherWindow.mul(otherWindowDuration).add(createPerFirstWindow).add(_bulkPurchaseTokens);
+
         emit LogInit(
-            tokensToSell, 
-            createPerOtherWindow.mul(otherWindowDuration).add(createPerFirstWindow).add(_bulkPurchaseTokens),
-            firstWindowDuration, 
-            otherWindowDuration, 
-            totalWindowDuration, 
-            createPerFirstWindow, 
+            tokensToSell,
+            checksum,
+            firstWindowDuration,
+            otherWindowDuration,
+            totalWindowDuration,
+            createPerFirstWindow,
             createPerOtherWindow
         );
+
+        // require(checksum == totalSupply, "Checksum failed");
 
         if (_bulkPurchaseTokens > 0) {
             REV.transfer(_bulkPurchaseAddress, _bulkPurchaseTokens);
@@ -105,16 +109,24 @@ contract REVSale is DSAuth, DSExec {
         return windowFor(time());
     }
 
-    // Each window is 23 hours long so that end-of-window rotates
+    // Each window is WINDOW_DURATION (23 hours) long so that end-of-window rotates
     // around the clock for all timezones.
     function windowFor(uint timestamp) public view returns (uint) {
         return timestamp < otherWindowsStartTime
         ? 0
-        : timestamp.sub(otherWindowsStartTime) / 23 hours + 1;
+        : timestamp.sub(otherWindowsStartTime).div(WINDOW_DURATION).add(1);
     }
 
     function createOnWindow(uint window) public view returns (uint) {
         return window == 0 ? createPerFirstWindow : createPerOtherWindow;
+    }
+
+    function shouldBeBoughtTotalTokensOnWindow(uint window) public view returns (uint) {
+        return window == 0 ? createPerFirstWindow : createPerOtherWindow.mul(window).add(createPerFirstWindow);
+    }
+
+    function unsoldTokensOnWindow(uint window) public view returns (uint) {
+        return shouldBeBoughtTotalTokensOnWindow(window).sub(totalBoughtTokens);
     }
 
     // This method provides the buyer some protections regarding which
@@ -155,7 +167,7 @@ contract REVSale is DSAuth, DSExec {
 
         uint256 dailyTotal = dailyTotals[window];
         uint256 userTotal = userBuys[window][msg.sender];
-        uint256 price = createOnWindow(window).div(dailyTotal);
+        uint256 price = createOnWindow(window).add(unsoldTokensOnWindow(window)).div(dailyTotal);
         uint256 reward = price.mul(userTotal);
 
         claimed[window][msg.sender] = true;

@@ -1,3 +1,5 @@
+const BigNumber = require('bignumber.js');
+
 const REVSale = artifacts.require('REVSale');
 const REVToken = artifacts.require('REVToken');
 
@@ -5,6 +7,7 @@ const DEFAULT_TOTAL_SUPPLY = '2000000000000000000000000000'; // 2 000 000 000 * 
 const DEFAULT_BULK_PURCHASE_TOKENS = '1000000000000000000000'; // 1000 * 10**18
 const DEFAULT_FIRST_PERIOD_DURATION_IN_SEC = 432000; // 5 days
 const DEFAULT_NUMBER_OF_OTHER_WINDOWS = 360;
+const DEFAULT_WINDOW_DURATION_IN_SEC = 82800; // 23 hours
 const DEFAULT_TOKENS_IN_FIRST_PERIOD = '82191739726027397260224000';
 const DEFAULT_TOKENS_IN_OTHER_PERIOD = '61657898028355600653';
 
@@ -69,5 +72,78 @@ contract('REVSale', accounts => {
         assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(1));
         assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(180));
         assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(360));
+    });
+
+    it("should return correct window while calling windowFor()", async () => {
+        let revSale = await REVSale.deployed();
+        let startTime = new Date().getTime();
+        let otherStartTime = startTime + 100;
+
+        await initializeRevSale(revSale, accounts, {
+            startTime: startTime,
+            otherStartTime: otherStartTime,
+            numberOfOtherWindows: 100
+        });
+
+        assert.equal(0, await revSale.windowFor(startTime));
+        assert.equal(0, await revSale.windowFor(startTime + 50));
+        assert.equal(0, await revSale.windowFor(startTime + 99));
+        assert.equal(1, await revSale.windowFor(otherStartTime));
+        assert.equal(1, await revSale.windowFor(otherStartTime + DEFAULT_WINDOW_DURATION_IN_SEC));
+        assert.equal(2, await revSale.windowFor(otherStartTime + DEFAULT_WINDOW_DURATION_IN_SEC * 2));
+        assert.equal(3, await revSale.windowFor(otherStartTime + DEFAULT_WINDOW_DURATION_IN_SEC * 3));
+    });
+
+    it("should return correct token amount while calling shouldBeBoughtTotalTokensOnWindow()", async () => {
+        let revSale = await REVSale.deployed();
+
+        await initializeRevSale(revSale, accounts);
+
+        let firstPeriodTokens = new BigNumber(DEFAULT_TOKENS_IN_FIRST_PERIOD);
+        let otherPeriodTokens = new BigNumber(DEFAULT_TOKENS_IN_OTHER_PERIOD);
+
+        assert.equal(
+            firstPeriodTokens.toString(10),
+            (await revSale.shouldBeBoughtTotalTokensOnWindow(0)).toString(10)
+        );
+
+        assert.equal(
+            firstPeriodTokens.plus(otherPeriodTokens).toString(10),
+            (await revSale.shouldBeBoughtTotalTokensOnWindow(1)).toString(10)
+        );
+
+        assert.equal(
+            firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(2)).toString(10),
+            (await revSale.shouldBeBoughtTotalTokensOnWindow(2)).toString(10)
+        );
+
+        assert.equal(
+            firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10),
+            (await revSale.shouldBeBoughtTotalTokensOnWindow(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10)
+        );
+    });
+
+    it("should return 0 while calling unsoldTokensOnWindow() without any purchases", async () => {
+        let revSale = await REVSale.deployed();
+
+        await initializeRevSale(revSale, accounts);
+
+        let firstPeriodTokens = new BigNumber(DEFAULT_TOKENS_IN_FIRST_PERIOD);
+        let otherPeriodTokens = new BigNumber(DEFAULT_TOKENS_IN_OTHER_PERIOD);
+
+        assert.equal(
+            firstPeriodTokens.toString(10),
+            (await revSale.shouldBeBoughtTotalTokensOnWindow(0)).toString(10)
+        );
+
+        assert.equal(
+            firstPeriodTokens.plus(otherPeriodTokens).toString(10),
+            (await revSale.shouldBeBoughtTotalTokensOnWindow(1)).toString(10)
+        );
+
+        assert.equal(
+            firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10),
+            (await revSale.shouldBeBoughtTotalTokensOnWindow(DEFAULT_NUMBER_OF_OTHER_WINDOWS)).toString(10)
+        );
     });
 });
