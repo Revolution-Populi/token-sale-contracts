@@ -2,7 +2,9 @@ import BigNumber from 'bignumber.js';
 import expectThrow from './helpers/expectThrow';
 
 const REVSale = artifacts.require('REVSale');
+const Creator = artifacts.require('Creator');
 const REVToken = artifacts.require('REVToken');
+const PeriodicAllocation = artifacts.require('PeriodicAllocation');
 
 const DEFAULT_BULK_PURCHASE_ACCOUNT = '0x713F6b1C608784312974e6Fa4e03BdBac1748B01';
 const DEFAULT_MARKETING_ACCOUNT = '0xF2fb97fBF0B2Ad0830F7C2B9C73F0648BB5340E4';
@@ -46,9 +48,13 @@ let initializeRevSale = async (revSale, accounts, customProps) => {
     );
 };
 
+let createRevSale = async () => {
+    return REVSale.new((await Creator.new()).address);
+};
+
 contract('REVSale', accounts => {
     it("should initialize with given values", async () => {
-        let revSale = await REVSale.deployed();
+        let revSale = await createRevSale();
         let startTime = new Date().getTime();
         let otherStartTime = startTime + DEFAULT_FIRST_PERIOD_DURATION_IN_SEC;
 
@@ -64,6 +70,7 @@ contract('REVSale', accounts => {
 
         // Check token transfers and total supply
         let revToken = await REVToken.at(await revSale.REV());
+        let tokenAddress = new String(revSale.address).valueOf();
 
         assert.equal(DEFAULT_TOTAL_SUPPLY, await revToken.totalSupply.call());
         assert.equal(
@@ -74,14 +81,20 @@ contract('REVSale', accounts => {
                 .minus(new BigNumber(DEFAULT_MARKETING_SHARE))
                 .minus(new BigNumber(DEFAULT_RESERVE_SHARE))
                 .toString(10),
-            (await revToken.balanceOf(new String(revSale.address).valueOf())).toString(10)
+            (await revToken.balanceOf(tokenAddress)).toString(10)
         );
 
+        let periodicAllocation = await PeriodicAllocation.at(await revSale.periodicAllocation());
+        let periodicAllocationAddress = new String(periodicAllocation.address).valueOf();
+
+        assert.equal(
+            new BigNumber(DEFAULT_REVPOP_COMPANY_SHARE).plus(DEFAULT_REVPOP_FOUNDATION_SHARE).toString(10),
+            (await revToken.balanceOf(periodicAllocationAddress)).toString(10)
+        );
+        
         assert.equal(DEFAULT_BULK_PURCHASE_TOKENS, await revToken.balanceOf(DEFAULT_BULK_PURCHASE_ACCOUNT));
         assert.equal(DEFAULT_RESERVE_SHARE, await revToken.balanceOf(DEFAULT_RESERVE_ACCOUNT));
         assert.equal(DEFAULT_MARKETING_SHARE, await revToken.balanceOf(DEFAULT_MARKETING_ACCOUNT));
-        assert.equal(DEFAULT_REVPOP_COMPANY_SHARE, await revToken.balanceOf(DEFAULT_REVPOP_COMPANY_ACCOUNT));
-        assert.equal(DEFAULT_REVPOP_FOUNDATION_SHARE, await revToken.balanceOf(DEFAULT_REVPOP_FOUNDATION_ACCOUNT));
 
         // Check distribution per first and other windows
         assert.equal(DEFAULT_TOKENS_IN_FIRST_PERIOD, (await revSale.createPerFirstWindow()).toString(10));
@@ -89,7 +102,7 @@ contract('REVSale', accounts => {
     });
 
     it("should have correct wallets set up", async () => {
-        let revSale = await REVSale.deployed();
+        let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
 
@@ -102,7 +115,7 @@ contract('REVSale', accounts => {
     });
 
     it("should perform assertions while initializing", async () => {
-        let revSale = await REVSale.deployed();
+        let revSale = await createRevSale();
 
         await expectThrow(initializeRevSale(revSale, accounts, { totalSupply: 0 }), '_totalSupply should be > 0');
         await expectThrow(initializeRevSale(revSale, accounts, { startTime: 10, otherStartTime: 9 }), '_firstWindowStartTime should be < _otherWindowsStartTime');
@@ -111,7 +124,7 @@ contract('REVSale', accounts => {
     });
 
     it("should return correct token amount while calling createOnWindow()", async () => {
-        let revSale = await REVSale.deployed();
+        let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
 
@@ -122,7 +135,7 @@ contract('REVSale', accounts => {
     });
 
     it("should return correct window while calling windowFor()", async () => {
-        let revSale = await REVSale.deployed();
+        let revSale = await createRevSale();
         let startTime = new Date().getTime();
         let otherStartTime = startTime + 100;
 
@@ -142,7 +155,7 @@ contract('REVSale', accounts => {
     });
 
     it("should return correct token amount while calling shouldBeBoughtTotalTokensBeforeWindow()", async () => {
-        let revSale = await REVSale.deployed();
+        let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
 
@@ -166,14 +179,14 @@ contract('REVSale', accounts => {
     });
 
     it("should throw an error while calling shouldBeBoughtTotalTokensBeforeWindow() with 0 value", async () => {
-        let revSale = await REVSale.deployed();
+        let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
         await expectThrow(revSale.shouldBeBoughtTotalTokensBeforeWindow(0), "window should be > 0");
     });
 
     it("should return 0 while calling unsoldTokensBeforeWindow() without any purchases", async () => {
-        let revSale = await REVSale.deployed();
+        let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
 
@@ -192,14 +205,14 @@ contract('REVSale', accounts => {
     });
 
     it("should throw an error while calling unsoldTokensBeforeWindow() with 0 value", async () => {
-        let revSale = await REVSale.deployed();
+        let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
         await expectThrow(revSale.shouldBeBoughtTotalTokensBeforeWindow(0), "window should be > 0");
     });
 
     it("should return 0 while calling today()", async () => {
-        let revSale = await REVSale.deployed();
+        let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
 

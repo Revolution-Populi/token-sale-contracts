@@ -1,8 +1,8 @@
 pragma solidity >=0.5.16;
 
-import './DSAuth.sol';
-import './SafeMath.sol';
-import './REVToken.sol';
+import '../DS/DSAuth.sol';
+import '../Token/REVToken.sol';
+import '../SafeMath.sol';
 
 // The contract for freezing tokens for the players and investors..
 contract PeriodicAllocation is DSAuth {
