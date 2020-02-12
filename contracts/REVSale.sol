@@ -16,11 +16,11 @@ contract REVSale is DSAuth, DSExec {
     uint constant MARKETING_SHARE = 250000000 ether;
     uint constant RESERVE_SHARE = 200000000 ether;
     uint constant REVPOP_FOUNDATION_SHARE = 200000000 ether;
-    uint constant REVPOP_FOUNDATION_FREQUENCY = 365 days;
-    uint constant REVPOP_FOUNDATION_DURATION = 3650 days; // 10 years
+    uint constant REVPOP_FOUNDATION_PERIOD_LENGTH = 365 days;
+    uint constant REVPOP_FOUNDATION_PERIODS = 10; // 10 years
     uint constant REVPOP_COMPANY_SHARE = 200000000 ether;
-    uint constant REVPOP_COMPANY_FREQUENCY = 365 days;
-    uint constant REVPOP_COMPANY_DURATION = 3650 days; // 10 years
+    uint constant REVPOP_COMPANY_PERIOD_LENGTH = 365 days;
+    uint constant REVPOP_COMPANY_PERIODS = 10; // 10 years
 
     address[6] public wallets = [
         // RevPop.org foundation
@@ -43,21 +43,23 @@ contract REVSale is DSAuth, DSExec {
     ];
 
     REVToken public REV;                   // The REV token itself
-    uint     public totalSupply;           // Total REV amount created
+    PeriodicAllocation public periodicAllocation;
 
-    uint     public firstWindowStartTime;  // Time of window 1 opening
-    uint     public createPerFirstWindow;  // Tokens sold in window 1
+    uint public totalSupply;           // Total REV amount created
 
-    uint     public otherWindowsStartTime; // Time of other windows opening
-    uint     public numberOfOtherWindows;  // Number of other windows
-    uint     public createPerOtherWindow;  // Tokens sold in each window after window 1
+    uint public firstWindowStartTime;  // Time of window 1 opening
+    uint public createPerFirstWindow;  // Tokens sold in window 1
 
-    uint     public totalBoughtTokens;
-    uint     public totalRaisedETH;
+    uint public otherWindowsStartTime; // Time of other windows opening
+    uint public numberOfOtherWindows;  // Number of other windows
+    uint public createPerOtherWindow;  // Tokens sold in each window after window 1
 
-    mapping(uint => uint)                      public  dailyTotals;
-    mapping(uint => mapping(address => uint))  public  userBuys;
-    mapping(uint => mapping(address => bool))  public  claimed;
+    uint public totalBoughtTokens;
+    uint public totalRaisedETH;
+
+    mapping(uint => uint) public dailyTotals;
+    mapping(uint => mapping(address => uint)) public userBuys;
+    mapping(uint => mapping(address => bool)) public claimed;
 
     event LogInit (
         uint tokensToSell,
@@ -68,8 +70,8 @@ contract REVSale is DSAuth, DSExec {
         uint createPerOtherWindow
     );
 
-    event LogBuy      (uint window, address user, uint amount);
-    event LogClaim    (uint window, address user, uint amount);
+    event LogBuy      (uint window, address indexed user, uint amount);
+    event LogClaim    (uint window, address indexed user, uint amount);
     event LogCollect  (uint amount);
     event LogFreeze   ();
 
@@ -79,6 +81,12 @@ contract REVSale is DSAuth, DSExec {
         require(REV.owner() == address(this), "Invalid owner of the REVToken");
         require(REV.authority() == DSAuthority(0), "Invalid authority of the REVToken");
         require(REV.totalSupply() == 0, "Total supply of REVToken should be 0");
+
+        periodicAllocation = creator.createPeriodicAllocation();
+
+        require(periodicAllocation.owner() == address(this), "Invalid owner of the PeriodicAllocation");
+        require(periodicAllocation.authority() == DSAuthority(0), "Invalid authority of the PeriodicAllocation");
+        require(periodicAllocation.unlockStart() == 0, "PeriodAllocation.unlockStart should be 0");
     }
 
     function initialize(
@@ -114,16 +122,17 @@ contract REVSale is DSAuth, DSExec {
         createPerFirstWindow = tokensToSell.div(totalWindowDuration).mul(FIRST_WINDOW_MULTIPLIER).mul(firstWindowDuration);
         createPerOtherWindow = tokensToSell.sub(createPerFirstWindow).div(otherWindowDuration);
 
-        // @TODO: change to allocation SC
-        REV.transfer(wallets[0], REVPOP_FOUNDATION_SHARE);
-        REV.transfer(wallets[1], REVPOP_COMPANY_SHARE);
-
+        REV.transfer(address(periodicAllocation), REVPOP_COMPANY_SHARE.add(REVPOP_FOUNDATION_SHARE));
         REV.transfer(wallets[2], MARKETING_SHARE);
         REV.transfer(wallets[3], RESERVE_SHARE);
 
         if (_bulkPurchaseTokens > 0) {
             REV.transfer(wallets[4], _bulkPurchaseTokens);
         }
+
+        periodicAllocation.addShare(wallets[0], 50, REVPOP_FOUNDATION_PERIODS, REVPOP_FOUNDATION_PERIOD_LENGTH);
+        periodicAllocation.addShare(wallets[1], 50, REVPOP_COMPANY_PERIODS, REVPOP_COMPANY_PERIOD_LENGTH);
+        periodicAllocation.setUnlockStart(time());
 
         emit LogInit(
             tokensToSell,
