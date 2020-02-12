@@ -13,7 +13,6 @@ contract PeriodicAllocation is DSAuth {
         uint256 periodLength;
     }
 
-    // How many days to freeze from the moment of finalizing ICO
     uint256 public unlockStart;
     uint256 public totalShare;
 
