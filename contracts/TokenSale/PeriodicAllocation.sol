@@ -4,7 +4,6 @@ import '../DS/DSAuth.sol';
 import '../Token/REVToken.sol';
 import '../SafeMath.sol';
 
-// The contract for freezing tokens for the players and investors..
 contract PeriodicAllocation is DSAuth {
     using SafeMath for uint256;
 
