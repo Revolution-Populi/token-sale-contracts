@@ -194,6 +194,8 @@ contract REVSale is DSAuth, DSExec {
             require(dailyTotals[window] <= limit, "dailyTotals[window] should be <= limit");
         }
 
+        totalRaisedETH += msg.value;
+
         emit LogBuy(window, msg.sender, msg.value);
     }
 
@@ -216,6 +218,8 @@ contract REVSale is DSAuth, DSExec {
         uint256 userTotal = userBuys[window][msg.sender];
         uint256 price = createOnWindow(window).div(dailyTotal);
         uint256 reward = price.mul(userTotal);
+
+        totalBoughtTokens += reward;
 
         claimed[window][msg.sender] = true;
 
