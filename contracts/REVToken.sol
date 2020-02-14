@@ -1,7 +1,7 @@
 pragma solidity >=0.5.16;
 
 import './ERC20.sol';
-import '../DS/DSStop.sol';
+import './DSStop.sol';
 
 contract REVToken is ERC20, DSStop {
     bytes32  public  symbol;

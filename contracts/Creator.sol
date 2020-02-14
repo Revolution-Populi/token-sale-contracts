@@ -1,6 +1,6 @@
 pragma solidity >=0.5.16;
 
-import '../Token/REVToken.sol';
+import './REVToken.sol';
 import './PeriodicAllocation.sol';
 
 contract Creator {

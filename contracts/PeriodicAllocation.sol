@@ -1,8 +1,8 @@
 pragma solidity >=0.5.16;
 
-import '../DS/DSAuth.sol';
-import '../Token/REVToken.sol';
-import '../SafeMath.sol';
+import './DSAuth.sol';
+import './REVToken.sol';
+import './SafeMath.sol';
 
 contract PeriodicAllocation is DSAuth {
     using SafeMath for uint256;

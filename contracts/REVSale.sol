@@ -1,9 +1,9 @@
 pragma solidity >=0.5.16;
 
-import '../DS/DSAuth.sol';
-import '../DS/DSExec.sol';
-import '../Token/REVToken.sol';
-import '../SafeMath.sol';
+import './DSAuth.sol';
+import './DSExec.sol';
+import './REVToken.sol';
+import './SafeMath.sol';
 import './Creator.sol';
 
 contract REVSale is DSAuth, DSExec {
