@@ -16,6 +16,7 @@ services:
                      --account="0x40dd9d1512bc05574a6854d0b9a5678a9636dceba78b7b5cf4344a34375b5b45,100000000000000000000000"'
         ports:
             - "8545:8545"
+            - "127.0.0.1:65520:65520"
         networks:
             - revpop-network
     truffle:

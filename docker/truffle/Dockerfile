@@ -8,3 +8,5 @@ RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
 RUN apt-get install --assume-yes nodejs
 RUN add-apt-repository -y ppa:ethereum/ethereum && apt-get update && apt-get install --assume-yes solc
 RUN apt-get install --assume-yes git make build-essential
+
+CMD ["node", "./node_modules/remixd/bin/remixd", "-s", "/var/www/contracts", "--remix-ide" ,"https://remix.ethereum.org"]
