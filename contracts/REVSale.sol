@@ -35,9 +35,6 @@ contract REVSale is DSAuth, DSExec {
         // Reserve currency
         0x0f02A52EbeFcce7104fc82B68756f4edC640523C,
 
-        // Bulk purchase account
-        0x713F6b1C608784312974e6Fa4e03BdBac1748B01,
-
         // Unsold tokens taker
         0x97000D1a83E3cd519308B444a21eCE69f4414658
     ];
@@ -56,6 +53,10 @@ contract REVSale is DSAuth, DSExec {
 
     uint public totalBoughtTokens;
     uint public totalRaisedETH;
+    uint public totalBulkPurchasedTokens;
+
+    bool public initialized1 = false;
+    bool public initialized2 = false;
 
     mapping(uint => uint) public dailyTotals;
     mapping(uint => mapping(address => uint)) public userBuys;
@@ -93,13 +94,12 @@ contract REVSale is DSAuth, DSExec {
         uint _totalSupply,
         uint _firstWindowStartTime,
         uint _otherWindowsStartTime,
-        uint _numberOfOtherWindows,
-        uint _bulkPurchaseTokens
+        uint _numberOfOtherWindows
     ) public auth {
+        require(initialized1 == false, "initialized1 == false");
         require(_totalSupply > 0, "_totalSupply should be > 0");
         require(_firstWindowStartTime < _otherWindowsStartTime, "_firstWindowStartTime should be < _otherWindowsStartTime");
         require(_numberOfOtherWindows > 0, "_numberOfOtherWindows should be > 0");
-        require(_bulkPurchaseTokens <= _totalSupply, "_bulkPurchaseTokens should be <= _totalSupply");
 
         numberOfOtherWindows = _numberOfOtherWindows;
         totalSupply = _totalSupply;
@@ -109,7 +109,7 @@ contract REVSale is DSAuth, DSExec {
         REV.mint(address(this), totalSupply);
 
         uint tokensToSell = totalSupply
-            .sub(_bulkPurchaseTokens)
+            .sub(totalBulkPurchasedTokens)
             .sub(MARKETING_SHARE)
             .sub(RESERVE_SHARE)
             .sub(REVPOP_COMPANY_SHARE)
@@ -126,10 +126,6 @@ contract REVSale is DSAuth, DSExec {
         REV.transfer(wallets[2], MARKETING_SHARE);
         REV.transfer(wallets[3], RESERVE_SHARE);
 
-        if (_bulkPurchaseTokens > 0) {
-            REV.transfer(wallets[4], _bulkPurchaseTokens);
-        }
-
         periodicAllocation.addShare(wallets[0], 50, REVPOP_FOUNDATION_PERIODS, REVPOP_FOUNDATION_PERIOD_LENGTH);
         periodicAllocation.addShare(wallets[1], 50, REVPOP_COMPANY_PERIODS, REVPOP_COMPANY_PERIOD_LENGTH);
         periodicAllocation.setUnlockStart(time());
@@ -142,6 +138,31 @@ contract REVSale is DSAuth, DSExec {
             createPerFirstWindow,
             createPerOtherWindow
         );
+
+        initialized1 = true;
+    }
+
+    function initialize2() public auth {
+        require(initialized1 == true, "initialized1 should be == true");
+        require(initialized2 == false, "initialized2 should be == false");
+
+        initialized2 = true;
+    }
+
+    function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public auth {
+        require(initialized2 == false, "initialized2 should be == false");
+
+        uint count = _purchasers.length;
+
+        require(count > 0, "count should be > 0");
+        require(count == _tokens.length, "count should be == _tokens.length");
+
+        for (uint i = 0; i < count; i++) {
+            require(REV.balanceOf(address(this)) > _tokens[i], "REV.balanceOf(address(this)) should be > _tokens[i]");
+
+            REV.transfer(_purchasers[i], _tokens[i]);
+            totalBulkPurchasedTokens = totalBulkPurchasedTokens.add(_tokens[i]);
+        }
     }
 
     function time() public view returns (uint) {
@@ -180,6 +201,7 @@ contract REVSale is DSAuth, DSExec {
     // day the buy order is submitted and the maximum price prior to
     // applying this payment that will be allowed.
     function buyWithLimit(uint window, uint limit) public payable {
+        require(initialized2 == true, "initialized2 should be == true");
         require(time() >= firstWindowStartTime, "time() should be >= firstWindowStartTime");
         require(today() <= numberOfOtherWindows, "today() should be <= numberOfOtherWindows");
         require(msg.value >= MIN_ETH, "msg.value should be >= MIN_ETH");
@@ -208,6 +230,7 @@ contract REVSale is DSAuth, DSExec {
     }
 
     function claim(uint window) public {
+        require(initialized2 == true, "initialized2 should be == true");
         require(today() > window, "today() should be > window");
 
         if (claimed[window][msg.sender] || dailyTotals[window] == 0) {
@@ -229,6 +252,8 @@ contract REVSale is DSAuth, DSExec {
     }
 
     function claimAll() public {
+        require(initialized2 == true, "initialized2 should be == true");
+
         for (uint i = 0; i < today(); i++) {
             claim(i);
         }
@@ -236,6 +261,7 @@ contract REVSale is DSAuth, DSExec {
 
     // Crowdsale owners can collect ETH any number of times
     function collect() public auth {
+        require(initialized2 == true, "initialized2 should be == true");
         require(today() > 0, "today() should be > 0");
         // Prevent recycling during window 0
         exec(msg.sender, address(this).balance);
@@ -243,6 +269,7 @@ contract REVSale is DSAuth, DSExec {
     }
 
     function collectUnsoldTokens(uint window) public auth {
+        require(initialized2 == true, "initialized2 should be == true");
         require(today() > 0, "today() should be > 0");
         require(window > 0, "window should be > 0");
         require(window < today(), "window should be < today()");
