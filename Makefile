@@ -73,6 +73,10 @@ truffle: ## Executes truffle command
 	@echo 'Execute truffle command "$(COMMAND)" in [$(APP_ENV)] mode'
 	$(COMPOSE_CMD) exec truffle "./node_modules/truffle/build/cli.bundled.js" $(COMMAND)
 
+flatten: ## Flattens smart contracts into single file
+	@echo 'Flattening all contracts to a single file...'
+	$(COMPOSE_CMD) exec truffle node ./node_modules/truffle-flattener/index.js contracts/REVSale.sol > flattened.sol
+
 ##
 ##Help
 help: ## Display available make tasks
