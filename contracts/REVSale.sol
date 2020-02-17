@@ -70,8 +70,8 @@ contract REVSale is DSAuth, DSExec {
         uint createPerOtherWindow
     );
 
-    event LogBuy      (uint window, address indexed user, uint amount);
-    event LogClaim    (uint window, address indexed user, uint amount);
+    event LogBuy      (uint window, address user, uint amount);
+    event LogClaim    (uint window, address user, uint amount);
     event LogCollect  (uint amount);
     event LogFreeze   ();
 
