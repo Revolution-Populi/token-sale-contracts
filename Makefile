@@ -75,10 +75,9 @@ truffle: ## Executes truffle command
 
 flatten: ## Flattens smart contracts into single file
 	@echo 'Flattening all contracts to a single file...'
-	$(COMPOSE_CMD) exec truffle node ./node_modules/truffle-flattener/index.js contracts/REVSale.sol > flattened.sol
+	$(COMPOSE_CMD) exec truffle bash -c "cd /var/solidity-flattener && npm start /var/www/contracts/REVSale.sol "
 
 ##
 ##Help
 help: ## Display available make tasks
 	@grep -E '(^[a-zA-Z_-]+:.*?##.*$$)|(^##)' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[32m%-30s\033[0m %s\n", $$1, $$2}' | sed -e 's/\[32m##/[33m/'
-

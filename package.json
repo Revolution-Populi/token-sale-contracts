@@ -28,7 +28,6 @@
     "babel-preset-stage-3": "^6.24.1",
     "bignumber.js": "^9.0.0",
     "dotenv": "^8.2.0",
-    "remixd": "^0.1.8-alpha.14",
-    "truffle-flattener": "^1.4.2"
+    "remixd": "^0.1.8-alpha.14"
   }
 }
