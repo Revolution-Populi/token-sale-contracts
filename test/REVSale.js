@@ -102,6 +102,27 @@ contract('REVSale', accounts => {
         assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createPerOtherWindow()).toString(10));
     });
 
+    it("initialize should be called only once", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await expectThrow(initializeRevSale(revSale, accounts), "initialized should be == false");
+    });
+
+    it("begin should be called only after initialized", async () => {
+        let revSale = await createRevSale();
+
+        await expectThrow(revSale.begin({from: accounts[0]}), "initialized should be == true");
+    });
+
+    it("begin should be called only once", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.begin({ from: accounts[0] });
+        await expectThrow(revSale.begin({ from: accounts[0] }), "began should be == false");
+    });
+
     it("should have correct wallets set up", async () => {
         let revSale = await createRevSale();
 

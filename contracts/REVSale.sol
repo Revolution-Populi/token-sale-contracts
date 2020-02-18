@@ -55,8 +55,8 @@ contract REVSale is DSAuth, DSExec {
     uint public totalRaisedETH;
     uint public totalBulkPurchasedTokens;
 
-    bool public initialized1 = false;
-    bool public initialized2 = false;
+    bool public initialized = false;
+    bool public began = false;
 
     mapping(uint => uint) public dailyTotals;
     mapping(uint => mapping(address => uint)) public userBuys;
@@ -96,7 +96,7 @@ contract REVSale is DSAuth, DSExec {
         uint _otherWindowsStartTime,
         uint _numberOfOtherWindows
     ) public auth {
-        require(initialized1 == false, "initialized1 == false");
+        require(initialized == false, "initialized should be == false");
         require(_totalSupply > 0, "_totalSupply should be > 0");
         require(_firstWindowStartTime < _otherWindowsStartTime, "_firstWindowStartTime should be < _otherWindowsStartTime");
         require(_numberOfOtherWindows > 0, "_numberOfOtherWindows should be > 0");
@@ -139,18 +139,18 @@ contract REVSale is DSAuth, DSExec {
             createPerOtherWindow
         );
 
-        initialized1 = true;
+        initialized = true;
     }
 
-    function initialize2() public auth {
-        require(initialized1 == true, "initialized1 should be == true");
-        require(initialized2 == false, "initialized2 should be == false");
+    function begin() public auth {
+        require(initialized == true, "initialized should be == true");
+        require(began == false, "began should be == false");
 
-        initialized2 = true;
+        began = true;
     }
 
     function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public auth {
-        require(initialized2 == false, "initialized2 should be == false");
+        require(began == false, "began should be == false");
 
         uint count = _purchasers.length;
 
@@ -201,7 +201,7 @@ contract REVSale is DSAuth, DSExec {
     // day the buy order is submitted and the maximum price prior to
     // applying this payment that will be allowed.
     function buyWithLimit(uint window, uint limit) public payable {
-        require(initialized2 == true, "initialized2 should be == true");
+        require(began == true, "began should be == true");
         require(time() >= firstWindowStartTime, "time() should be >= firstWindowStartTime");
         require(today() <= numberOfOtherWindows, "today() should be <= numberOfOtherWindows");
         require(msg.value >= MIN_ETH, "msg.value should be >= MIN_ETH");
@@ -230,7 +230,7 @@ contract REVSale is DSAuth, DSExec {
     }
 
     function claim(uint window) public {
-        require(initialized2 == true, "initialized2 should be == true");
+        require(began == true, "began should be == true");
         require(today() > window, "today() should be > window");
 
         if (claimed[window][msg.sender] || dailyTotals[window] == 0) {
@@ -252,7 +252,7 @@ contract REVSale is DSAuth, DSExec {
     }
 
     function claimAll() public {
-        require(initialized2 == true, "initialized2 should be == true");
+        require(began == true, "began should be == true");
 
         for (uint i = 0; i < today(); i++) {
             claim(i);
@@ -261,7 +261,7 @@ contract REVSale is DSAuth, DSExec {
 
     // Crowdsale owners can collect ETH any number of times
     function collect() public auth {
-        require(initialized2 == true, "initialized2 should be == true");
+        require(began == true, "began should be == true");
         require(today() > 0, "today() should be > 0");
         // Prevent recycling during window 0
         exec(msg.sender, address(this).balance);
@@ -269,7 +269,7 @@ contract REVSale is DSAuth, DSExec {
     }
 
     function collectUnsoldTokens(uint window) public auth {
-        require(initialized2 == true, "initialized2 should be == true");
+        require(began == true, "began should be == true");
         require(today() > 0, "today() should be > 0");
         require(window > 0, "window should be > 0");
         require(window < today(), "window should be < today()");
