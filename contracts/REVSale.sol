@@ -1,12 +1,12 @@
-pragma solidity >=0.5.16;
+pragma solidity ^0.6.0;
 
-import './DSAuth.sol';
+import './Ownable.sol';
 import './DSExec.sol';
 import './REVToken.sol';
 import './SafeMath.sol';
 import './Creator.sol';
 
-contract REVSale is DSAuth, DSExec {
+contract REVSale is Ownable, DSExec {
     using SafeMath for uint256;
 
     uint constant MIN_ETH = 1 ether;
@@ -80,13 +80,11 @@ contract REVSale is DSAuth, DSExec {
         REV = creator.createToken();
 
         require(REV.owner() == address(this), "Invalid owner of the REVToken");
-        require(REV.authority() == DSAuthority(0), "Invalid authority of the REVToken");
         require(REV.totalSupply() == 0, "Total supply of REVToken should be 0");
 
         periodicAllocation = creator.createPeriodicAllocation();
 
         require(periodicAllocation.owner() == address(this), "Invalid owner of the PeriodicAllocation");
-        require(periodicAllocation.authority() == DSAuthority(0), "Invalid authority of the PeriodicAllocation");
         require(periodicAllocation.unlockStart() == 0, "PeriodAllocation.unlockStart should be 0");
     }
 

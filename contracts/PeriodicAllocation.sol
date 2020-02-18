@@ -1,10 +1,10 @@
-pragma solidity >=0.5.16;
+pragma solidity ^0.6.0;
 
-import './DSAuth.sol';
+import './Ownable.sol';
 import './REVToken.sol';
 import './SafeMath.sol';
 
-contract PeriodicAllocation is DSAuth {
+contract PeriodicAllocation is Ownable {
     using SafeMath for uint256;
 
     struct Share {

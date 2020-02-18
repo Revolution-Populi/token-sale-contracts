@@ -16,7 +16,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "truffle": "^5.1.11"
+    "truffle": "^5.1.13"
   },
   "dependencies": {
     "@truffle/hdwallet-provider": "^1.0.30",

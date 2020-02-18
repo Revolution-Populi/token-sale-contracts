@@ -1,9 +1,9 @@
-pragma solidity >=0.5.16;
+pragma solidity ^0.6.0;
 
-import './DSAuth.sol';
+import './Ownable.sol';
 import './DSNote.sol';
 
-contract DSStop is DSNote, DSAuth {
+contract DSStop is DSNote, Ownable {
     bool public stopped;
 
     modifier stoppable {

@@ -1,4 +1,4 @@
-pragma solidity >=0.5.16;
+pragma solidity ^0.6.0;
 
 import './REVToken.sol';
 import './PeriodicAllocation.sol';
@@ -8,14 +8,14 @@ contract Creator {
     PeriodicAllocation public periodicAllocation;
 
     function createToken() external returns (REVToken) {
-        token.setOwner(msg.sender);
+        token.transferOwnership(msg.sender);
 
         return token;
     }
 
     function createPeriodicAllocation() external returns (PeriodicAllocation) {
         periodicAllocation = new PeriodicAllocation(token);
-        periodicAllocation.setOwner(msg.sender);
+        periodicAllocation.transferOwnership(msg.sender);
 
         return periodicAllocation;
     }
