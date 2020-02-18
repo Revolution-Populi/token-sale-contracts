@@ -222,7 +222,11 @@ contract REVSale is Ownable {
         buyWithLimit(today(), 0);
     }
 
-    fallback () external payable {
+    fallback() external payable {
+        buy();
+    }
+
+    receive() external payable {
         buy();
     }
 
