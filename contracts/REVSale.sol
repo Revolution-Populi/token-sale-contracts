@@ -55,6 +55,7 @@ contract REVSale is Ownable {
     uint public totalBulkPurchasedTokens;
 
     bool public initialized = false;
+    bool public distributedShares = false;
     bool public began = false;
 
     mapping(uint => uint) public dailyTotals;
@@ -85,6 +86,8 @@ contract REVSale is Ownable {
 
         require(periodicAllocation.owner() == address(this), "Invalid owner of the PeriodicAllocation");
         require(periodicAllocation.unlockStart() == 0, "PeriodAllocation.unlockStart should be 0");
+
+        REV.setPausableException(address(periodicAllocation), true);
     }
 
     function initialize(
@@ -104,6 +107,13 @@ contract REVSale is Ownable {
         otherWindowsStartTime = _otherWindowsStartTime;
 
         REV.mint(address(this), totalSupply);
+
+        initialized = true;
+    }
+
+    function distributeShares() public onlyOwner {
+        require(initialized == true, "initialized should be == true");
+        require(distributedShares == false, "distributedShares should be == false");
 
         uint tokensToSell = totalSupply
             .sub(totalBulkPurchasedTokens)
@@ -127,6 +137,11 @@ contract REVSale is Ownable {
         periodicAllocation.addShare(wallets[1], 50, REVPOP_COMPANY_PERIODS, REVPOP_COMPANY_PERIOD_LENGTH);
         periodicAllocation.setUnlockStart(time());
 
+        // We pause all transfers and minting.
+        // We allow to use transfer() function ONLY for periodicAllocation contract, 
+        // because it is an escrow and it should allow to transfer tokens to a certain party.
+        pauseTokenTransfer();
+
         emit LogInit(
             tokensToSell,
             firstWindowDuration,
@@ -136,18 +151,27 @@ contract REVSale is Ownable {
             createPerOtherWindow
         );
 
-        initialized = true;
+        distributedShares = true;
     }
 
     function begin() public onlyOwner {
-        require(initialized == true, "initialized should be == true");
+        require(distributedShares == true, "distributedShares should be == true");
         require(began == false, "began should be == false");
 
         began = true;
     }
 
+    function pauseTokenTransfer() public onlyOwner {
+        REV.pause();
+    }
+
+    function unpauseTokenTransfer() public onlyOwner {
+        REV.unpause();
+    }
+
     function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public onlyOwner {
-        require(began == false, "began should be == false");
+        require(initialized == true, "initialized should be == true");
+        require(distributedShares == false, "distributedShares should be == false");
 
         uint count = _purchasers.length;
 

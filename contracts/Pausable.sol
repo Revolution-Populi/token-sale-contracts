@@ -1,7 +1,6 @@
 pragma solidity ^0.6.0;
 
 import "./Context.sol";
-import "./Ownable.sol";
 
 /**
  * @dev Contract module which allows children to implement an emergency stop
@@ -12,7 +11,7 @@ import "./Ownable.sol";
  * the functions of your contract. Note that they will not be pausable by
  * simply including this module, only once the modifiers are put in place.
  */
-contract Pausable is Context, Ownable {
+contract Pausable is Context {
     /**
      * @dev Emitted when the pause is triggered by a pauser (`account`).
      */
@@ -43,7 +42,7 @@ contract Pausable is Context, Ownable {
     /**
      * @dev Modifier to make a function callable only when the contract is not paused.
      */
-    modifier whenNotPaused() {
+    modifier whenNotPaused() virtual {
         require(!_paused, "Pausable: paused");
         _;
     }
@@ -51,7 +50,7 @@ contract Pausable is Context, Ownable {
     /**
      * @dev Modifier to make a function callable only when the contract is paused.
      */
-    modifier whenPaused() {
+    modifier whenPaused() virtual {
         require(_paused, "Pausable: not paused");
         _;
     }
@@ -59,7 +58,7 @@ contract Pausable is Context, Ownable {
     /**
      * @dev Called by a pauser to pause, triggers stopped state.
      */
-    function _pause() internal virtual whenNotPaused onlyOwner {
+    function _pause() internal virtual whenNotPaused {
         _paused = true;
         emit Paused(_msgSender());
     }
@@ -67,7 +66,7 @@ contract Pausable is Context, Ownable {
     /**
      * @dev Called by a pauser to unpause, returns to normal state.
      */
-    function _unpause() internal virtual whenPaused onlyOwner {
+    function _unpause() internal virtual whenPaused {
         _paused = false;
         emit Unpaused(_msgSender());
     }
