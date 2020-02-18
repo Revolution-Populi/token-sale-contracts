@@ -1,9 +1,8 @@
 pragma solidity ^0.6.0;
 
 import './Ownable.sol';
-import './DSNote.sol';
 
-contract DSStop is DSNote, Ownable {
+contract DSStop is Ownable {
     bool public stopped;
 
     modifier stoppable {
@@ -11,11 +10,11 @@ contract DSStop is DSNote, Ownable {
         _;
     }
 
-    function stop() public auth note {
+    function stop() public onlyOwner {
         stopped = true;
     }
 
-    function start() public auth note {
+    function start() public onlyOwner {
         stopped = false;
     }
 }
