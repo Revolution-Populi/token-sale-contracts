@@ -25,14 +25,14 @@ contract PeriodicAllocation is Ownable {
         token = _token;
     }
 
-    function setUnlockStart(uint256 _unlockStart) auth external {
+    function setUnlockStart(uint256 _unlockStart) onlyOwner external {
         require(unlockStart == 0, "unlockStart should be == 0");
         require(_unlockStart >= now, "_unlockStart should be >= now");
 
         unlockStart = _unlockStart;
     }
 
-    function addShare(address _beneficiary, uint256 _proportion, uint256 _periods, uint256 _periodLength) auth external {
+    function addShare(address _beneficiary, uint256 _proportion, uint256 _periods, uint256 _periodLength) onlyOwner external {
         shares[_beneficiary] = Share(shares[_beneficiary].proportion.add(_proportion),_periods,_periodLength);
         totalShare = totalShare.add(_proportion);
     }

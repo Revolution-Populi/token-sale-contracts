@@ -1,12 +1,11 @@
 pragma solidity ^0.6.0;
 
 import './Ownable.sol';
-import './DSExec.sol';
 import './REVToken.sol';
 import './SafeMath.sol';
 import './Creator.sol';
 
-contract REVSale is Ownable, DSExec {
+contract REVSale is Ownable {
     using SafeMath for uint256;
 
     uint constant MIN_ETH = 1 ether;
@@ -93,7 +92,7 @@ contract REVSale is Ownable, DSExec {
         uint _firstWindowStartTime,
         uint _otherWindowsStartTime,
         uint _numberOfOtherWindows
-    ) public auth {
+    ) public onlyOwner {
         require(initialized == false, "initialized should be == false");
         require(_totalSupply > 0, "_totalSupply should be > 0");
         require(_firstWindowStartTime < _otherWindowsStartTime, "_firstWindowStartTime should be < _otherWindowsStartTime");
@@ -140,14 +139,14 @@ contract REVSale is Ownable, DSExec {
         initialized = true;
     }
 
-    function begin() public auth {
+    function begin() public onlyOwner {
         require(initialized == true, "initialized should be == true");
         require(began == false, "began should be == false");
 
         began = true;
     }
 
-    function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public auth {
+    function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public onlyOwner {
         require(began == false, "began should be == false");
 
         uint count = _purchasers.length;
@@ -223,7 +222,7 @@ contract REVSale is Ownable, DSExec {
         buyWithLimit(today(), 0);
     }
 
-    function() external payable {
+    fallback () external payable {
         buy();
     }
 
@@ -258,15 +257,16 @@ contract REVSale is Ownable, DSExec {
     }
 
     // Crowdsale owners can collect ETH any number of times
-    function collect() public auth {
+    function collect() public onlyOwner {
         require(began == true, "began should be == true");
         require(today() > 0, "today() should be > 0");
         // Prevent recycling during window 0
-        exec(msg.sender, address(this).balance);
+        msg.sender.transfer(address(this).balance);
+
         emit LogCollect(address(this).balance);
     }
 
-    function collectUnsoldTokens(uint window) public auth {
+    function collectUnsoldTokens(uint window) public onlyOwner {
         require(began == true, "began should be == true");
         require(today() > 0, "today() should be > 0");
         require(window > 0, "window should be > 0");

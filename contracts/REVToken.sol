@@ -16,12 +16,12 @@ contract REVToken is ERC20, Pausable {
         name = name_;
     }
 
-    function transfer(address recipient, uint amount) public whenNotPaused returns (bool)
+    function transfer(address recipient, uint amount) public override whenNotPaused returns (bool)
     {
         return super.transfer(recipient, amount);
     }
 
-    function transferFrom(address sender, address recipient, uint amount) public whenNotPaused returns (bool)
+    function transferFrom(address sender, address recipient, uint amount) public override whenNotPaused returns (bool)
     {
         return super.transferFrom(sender, recipient, amount);
     }
