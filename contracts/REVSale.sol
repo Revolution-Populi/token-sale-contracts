@@ -22,7 +22,7 @@ contract REVSale is DSAuth, DSExec {
     uint constant REVPOP_COMPANY_PERIOD_LENGTH = 365 days;
     uint constant REVPOP_COMPANY_PERIODS = 10; // 10 years
 
-    address[6] public wallets = [
+    address[5] public wallets = [
         // RevPop.org foundation
         0x049A9f8C12c23C0549b73960748645403DC443e3,
 
@@ -277,7 +277,7 @@ contract REVSale is DSAuth, DSExec {
         uint unsoldTokens = unsoldTokensBeforeWindow(window);
 
         if (unsoldTokens > 0) {
-            REV.transfer(wallets[5], unsoldTokens);
+            REV.transfer(wallets[4], unsoldTokens);
         }
     }
 }
