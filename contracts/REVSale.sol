@@ -23,19 +23,19 @@ contract REVSale is Ownable {
 
     address[5] public wallets = [
         // RevPop.org foundation
-        0x049A9f8C12c23C0549b73960748645403DC443e3,
+        0xf0f5409ea22B14a20b12b330BD52a91597efBe8F,
 
         // RevPop the company
-        0x7bE0166D691fdDf4e5f0E50Cdd9Ab0666Ef8b41d,
+        0xb7D4Ac7FCe988DA56fEf5373A6596a0144aF9924,
 
         // Marketing
-        0xF2fb97fBF0B2Ad0830F7C2B9C73F0648BB5340E4,
+        0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e,
 
         // Reserve currency
-        0x0f02A52EbeFcce7104fc82B68756f4edC640523C,
+        0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0,
 
         // Unsold tokens taker
-        0x97000D1a83E3cd519308B444a21eCE69f4414658
+        0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E
     ];
 
     REVToken public REV;                   // The REV token itself
