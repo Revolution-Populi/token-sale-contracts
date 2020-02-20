@@ -19,14 +19,16 @@ const RESERVE_ACCOUNT_INDEX = 9;
 const REVPOP_FOUNDATION_ACCOUNT_INDEX = 10;
 const REVPOP_COMPANY_ACCOUNT_INDEX = 11;
 
-const TOTAL_SUPPLY = '2000000000000000000000000000'; // 2bn * 10^18
-const MARKETING_SHARE = '250000000000000000000000000'; // 250m * 10^18
-const RESERVE_SHARE = '200000000000000000000000000'; // 200m * 10^18
-const REVPOP_FOUNDATION_SHARE = '200000000000000000000000000'; // 200m * 10^18
-const REVPOP_COMPANY_SHARE = '200000000000000000000000000'; // 200m * 10^18
+const BULK_PURCHASE_EXAMPLE = '100000000000000000000000'; // 100k * 10^18
 
-const TOKENS_IN_FIRST_PERIOD = '49285714285714285713600000';
-const TOKENS_IN_OTHER_PERIOD = '36926807760141093474';
+const TOTAL_SUPPLY            = '2000000000000000000000000000'; // 2bn * 10^18
+const MARKETING_SHARE         = '250000000000000000000000000'; // 250m * 10^18
+const RESERVE_SHARE           = '200000000000000000000000000'; // 200m * 10^18
+const REVPOP_FOUNDATION_SHARE = '200000000000000000000000000'; // 200m * 10^18
+const REVPOP_COMPANY_SHARE    = '200000000000000000000000000'; // 200m * 10^18
+
+const DEFAULT_TOKENS_IN_FIRST_PERIOD = '49285714285714285713600000';
+const DEFAULT_TOKENS_IN_OTHER_PERIOD = '36926807760141093474';
 
 const FIRST_PERIOD_DURATION_IN_SEC = 432000; // 5 days
 const NUMBER_OF_OTHER_WINDOWS = 360;
@@ -56,6 +58,16 @@ let createRevSale = async () => {
     return REVSale.new((await Creator.new()).address);
 };
 
+let getRevTokenFromRevSale = async (revSale) => {
+    return REVToken.at(await revSale.REV());
+};
+
+let getBalanceByRevSale = async (revSale, account) => {
+    let revToken = await REVToken.at(await revSale.REV());
+    
+    return revToken.balanceOf(account);
+};
+
 contract('REVSale', accounts => {
     it("should initialize with given values", async () => {
         let revSale = await createRevSale();
@@ -70,21 +82,21 @@ contract('REVSale', accounts => {
         await revSale.distributeShares({ from: accounts[0] });
         await revSale.begin({ from: accounts[0] });
 
-        // await revSale.setBulkPurchasers(
-            // ['', ''],
-            // [], []
-        // );
+        let revToken = await getRevTokenFromRevSale(revSale);
 
+        assert.equal(TOTAL_SUPPLY, await revToken.totalSupply.call());
         assert.equal(NUMBER_OF_OTHER_WINDOWS, await revSale.numberOfOtherWindows());
         assert.equal(TOTAL_SUPPLY, await revSale.totalSupply());
         assert.equal(startTime, await revSale.firstWindowStartTime());
         assert.equal(otherStartTime, await revSale.otherWindowsStartTime());
+    });
 
-        // Check token transfers and total supply
-        let revToken = await REVToken.at(await revSale.REV());
-        let tokenAddress = new String(revSale.address).valueOf();
+    it("should have proper total supply and create per first/other window values after calling distributeShares (without bulk purchasers)", async () => {
+        let revSale = await createRevSale();
 
-        assert.equal(TOTAL_SUPPLY, await revToken.totalSupply.call());
+        await initializeRevSale(revSale, accounts);
+        await revSale.distributeShares({ from: accounts[0] });
+
         assert.equal(
             new BigNumber(TOTAL_SUPPLY)
                 .minus(new BigNumber(REVPOP_FOUNDATION_SHARE))
@@ -92,25 +104,58 @@ contract('REVSale', accounts => {
                 .minus(new BigNumber(MARKETING_SHARE))
                 .minus(new BigNumber(RESERVE_SHARE))
                 .toString(10),
-            (await revToken.balanceOf(tokenAddress)).toString(10)
+            (await getBalanceByRevSale(revSale, revSale.address)).toString(10)
         );
+
+        assert.equal(DEFAULT_TOKENS_IN_FIRST_PERIOD, (await revSale.createPerFirstWindow()).toString(10));
+        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createPerOtherWindow()).toString(10));
+    });
+
+    it("should have proper total supply and create per first/other window values after calling distributeShares (with bulk purchasers)", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.setBulkPurchasers(
+            [accounts[1], accounts[2]],
+            [BULK_PURCHASE_EXAMPLE, BULK_PURCHASE_EXAMPLE],
+            { from: accounts[0] }
+        );
+
+        let totalBulkPurchaseAmount = new BigNumber(BULK_PURCHASE_EXAMPLE).multipliedBy(2);
+
+        await revSale.distributeShares({ from: accounts[0] });
+
+        assert.equal(
+            new BigNumber(TOTAL_SUPPLY)
+                .minus(totalBulkPurchaseAmount)
+                .minus(new BigNumber(REVPOP_FOUNDATION_SHARE))
+                .minus(new BigNumber(REVPOP_COMPANY_SHARE))
+                .minus(new BigNumber(MARKETING_SHARE))
+                .minus(new BigNumber(RESERVE_SHARE))
+                .toString(10),
+            (await getBalanceByRevSale(revSale, revSale.address)).toString(10)
+        );
+
+        assert.equal('49277142857142857141856000', (await revSale.createPerFirstWindow()).toString(10));
+        assert.equal('36920385706617590675', (await revSale.createPerOtherWindow()).toString(10));
+    });
+
+    if ("should have proper distribution of tokens after calling distributeShares", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.distributeShares({ from: accounts[0] });
 
         let periodicAllocation = await PeriodicAllocation.at(await revSale.periodicAllocation());
         let periodicAllocationAddress = new String(periodicAllocation.address).valueOf();
 
         assert.equal(
             new BigNumber(REVPOP_COMPANY_SHARE).plus(REVPOP_FOUNDATION_SHARE).toString(10),
-            (await revToken.balanceOf(periodicAllocationAddress)).toString(10)
+            (await getBalanceByRevSale(revSale, periodicAllocationAddress)).toString(10)
         );
-        
-        // @TODO: check bulk purchasers
 
         assert.equal(RESERVE_SHARE, await revToken.balanceOf(RESERVE_ACCOUNT));
         assert.equal(MARKETING_SHARE, await revToken.balanceOf(MARKETING_ACCOUNT));
-
-        // Check distribution per first and other windows
-        assert.equal(TOKENS_IN_FIRST_PERIOD, (await revSale.createPerFirstWindow()).toString(10));
-        assert.equal(TOKENS_IN_OTHER_PERIOD, (await revSale.createPerOtherWindow()).toString(10));
     });
 
     it("initialize should be called only once", async () => {
@@ -120,11 +165,30 @@ contract('REVSale', accounts => {
         await expectThrow(initializeRevSale(revSale, accounts), "initialized should be == false");
     });
 
-    it("initialize should be called only once", async () => {
+    it("should allow to call setBulkPurchasers only after initialized", async () => {
+        let revSale = await createRevSale();
+
+        await expectThrow(
+            revSale.setBulkPurchasers(
+                [accounts[1], accounts[2]],
+                [BULK_PURCHASE_EXAMPLE, BULK_PURCHASE_EXAMPLE],
+                { from: accounts[0] }
+            ),
+            "initialized should be == true"
+        );
+    });
+
+    it("should transfer tokens to bulk purchasers when setBulkPurchasers is called", async () => {
         let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
-        await expectThrow(initializeRevSale(revSale, accounts), "initialized should be == false");
+        await revSale.setBulkPurchasers(
+            [accounts[1], accounts[2]],
+            [BULK_PURCHASE_EXAMPLE, BULK_PURCHASE_EXAMPLE],
+            { from: accounts[0] }
+        );
+
+        // @TODO: Also check that bulk purchasers receive correct amount of tokens.
     });
 
     it("begin should be called only after shares are distributed", async () => {
@@ -172,10 +236,10 @@ contract('REVSale', accounts => {
         await revSale.distributeShares({ from: accounts[0] });
         await revSale.begin({ from: accounts[0] });
 
-        assert.equal(TOKENS_IN_FIRST_PERIOD, await revSale.createOnWindow(0));
-        assert.equal(TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(1));
-        assert.equal(TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(180));
-        assert.equal(TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(360));
+        assert.equal(DEFAULT_TOKENS_IN_FIRST_PERIOD, await revSale.createOnWindow(0));
+        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(1));
+        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(180));
+        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(360));
     });
 
     it("should return correct window while calling windowFor()", async () => {
@@ -199,73 +263,6 @@ contract('REVSale', accounts => {
         assert.equal(2, await revSale.windowFor(otherStartTime + WINDOW_DURATION_IN_SEC));
         assert.equal(3, await revSale.windowFor(otherStartTime + WINDOW_DURATION_IN_SEC * 2));
         assert.equal(4, await revSale.windowFor(otherStartTime + WINDOW_DURATION_IN_SEC * 3));
-    });
-
-    it("should return correct token amount while calling shouldBeBoughtTotalTokensBeforeWindow()", async () => {
-        let revSale = await createRevSale();
-
-        await initializeRevSale(revSale, accounts);
-        await revSale.distributeShares({ from: accounts[0] });
-        await revSale.begin({ from: accounts[0] });
-
-        let firstPeriodTokens = new BigNumber(TOKENS_IN_FIRST_PERIOD);
-        let otherPeriodTokens = new BigNumber(TOKENS_IN_OTHER_PERIOD);
-
-        assert.equal(
-            firstPeriodTokens.toString(10),
-            (await revSale.shouldBeBoughtTotalTokensBeforeWindow(1)).toString(10)
-        );
-
-        assert.equal(
-            firstPeriodTokens.plus(otherPeriodTokens).toString(10),
-            (await revSale.shouldBeBoughtTotalTokensBeforeWindow(2)).toString(10)
-        );
-
-        assert.equal(
-            firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(NUMBER_OF_OTHER_WINDOWS - 1)).toString(10),
-            (await revSale.shouldBeBoughtTotalTokensBeforeWindow(NUMBER_OF_OTHER_WINDOWS)).toString(10)
-        );
-    });
-
-    it("should throw an error while calling shouldBeBoughtTotalTokensBeforeWindow() with 0 value", async () => {
-        let revSale = await createRevSale();
-
-        await initializeRevSale(revSale, accounts);
-        await revSale.distributeShares({ from: accounts[0] });
-        await revSale.begin({ from: accounts[0] });
-
-        await expectThrow(revSale.shouldBeBoughtTotalTokensBeforeWindow(0), "window should be > 0");
-    });
-
-    it("should return 0 while calling unsoldTokensBeforeWindow() without any purchases", async () => {
-        let revSale = await createRevSale();
-
-        await initializeRevSale(revSale, accounts);
-        await revSale.distributeShares({ from: accounts[0] });
-        await revSale.begin({ from: accounts[0] });
-
-        let firstPeriodTokens = new BigNumber(TOKENS_IN_FIRST_PERIOD);
-        let otherPeriodTokens = new BigNumber(TOKENS_IN_OTHER_PERIOD);
-
-        assert.equal(
-            firstPeriodTokens.toString(10),
-            (await revSale.shouldBeBoughtTotalTokensBeforeWindow(1)).toString(10)
-        );
-
-        assert.equal(
-            firstPeriodTokens.plus(otherPeriodTokens.multipliedBy(NUMBER_OF_OTHER_WINDOWS - 1)).toString(10),
-            (await revSale.shouldBeBoughtTotalTokensBeforeWindow(NUMBER_OF_OTHER_WINDOWS)).toString(10)
-        );
-    });
-
-    it("should throw an error while calling unsoldTokensBeforeWindow() with 0 value", async () => {
-        let revSale = await createRevSale();
-
-        await initializeRevSale(revSale, accounts);
-        await revSale.distributeShares({ from: accounts[0] });
-        await revSale.begin({ from: accounts[0] });
-
-        await expectThrow(revSale.shouldBeBoughtTotalTokensBeforeWindow(0), "window should be > 0");
     });
 
     it("should return 0 while calling today()", async () => {

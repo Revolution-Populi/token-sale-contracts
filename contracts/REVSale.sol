@@ -54,6 +54,8 @@ contract REVSale is Ownable {
     uint public totalRaisedETH;
     uint public totalBulkPurchasedTokens;
 
+    uint public collectedUnsoldTokensBeforeWindow = 0;
+
     bool public initialized = false;
     bool public distributedShares = false;
     bool public began = false;
@@ -169,6 +171,10 @@ contract REVSale is Ownable {
         REV.unpause();
     }
 
+    function burnTokens(address account, uint amount) public onlyOwner {
+        REV.burn(account, amount);
+    }
+
     function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public onlyOwner {
         require(initialized == true, "initialized should be == true");
         require(distributedShares == false, "distributedShares should be == false");
@@ -206,18 +212,6 @@ contract REVSale is Ownable {
         return window == 0 ? createPerFirstWindow : createPerOtherWindow;
     }
 
-    function shouldBeBoughtTotalTokensBeforeWindow(uint window) public view returns (uint) {
-        require(window > 0, "window should be > 0");
-
-        uint beforeWindow = window - 1;
-
-        return beforeWindow == 0 ? createPerFirstWindow : createPerOtherWindow.mul(beforeWindow).add(createPerFirstWindow);
-    }
-
-    function unsoldTokensBeforeWindow(uint window) public view returns (uint) {
-        return shouldBeBoughtTotalTokensBeforeWindow(window).sub(totalBoughtTokens);
-    }
-
     // This method provides the buyer some protections regarding which
     // day the buy order is submitted and the maximum price prior to
     // applying this payment that will be allowed.
@@ -229,14 +223,12 @@ contract REVSale is Ownable {
         require(window >= today(), "window should be >= today()");
         require(window <= numberOfOtherWindows, "window should be <= numberOfOtherWindows");
 
-        userBuys[window][msg.sender] += msg.value;
-        dailyTotals[window] += msg.value;
-
-        // @TODO: should this condition be performed before dailyTotals is updated?
         if (limit != 0) {
             require(dailyTotals[window] <= limit, "dailyTotals[window] should be <= limit");
         }
 
+        userBuys[window][msg.sender] += msg.value;
+        dailyTotals[window] += msg.value;
         totalRaisedETH += msg.value;
 
         emit LogBuy(window, msg.sender, msg.value);
@@ -299,11 +291,23 @@ contract REVSale is Ownable {
         require(today() > 0, "today() should be > 0");
         require(window > 0, "window should be > 0");
         require(window < today(), "window should be < today()");
+        require(window > collectedUnsoldTokensBeforeWindow, "window should be > collectedUnsoldTokensBeforeWindow");
 
-        uint unsoldTokens = unsoldTokensBeforeWindow(window);
+        uint unsoldTokens = 0;
+        uint dailyTotal = 0;
+
+        for (uint i = collectedUnsoldTokensBeforeWindow; i < window; i++) {
+            dailyTotal = dailyTotals[window];
+
+            if (dailyTotal == 0) {
+                unsoldTokens = unsoldTokens.add(i == 0 ? createPerFirstWindow : createPerOtherWindow);
+            }
+        }
 
         if (unsoldTokens > 0) {
             REV.transfer(wallets[4], unsoldTokens);
         }
+
+        collectedUnsoldTokensBeforeWindow = window;
     }
 }
