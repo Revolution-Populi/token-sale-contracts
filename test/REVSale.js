@@ -381,4 +381,32 @@ contract('REVSale', accounts => {
         // Check that it is impossible to call burn on token contract directly
         await expectThrow(token.burn(MARKETING_ACCOUNT, '1000', { from: accounts[0] }), 'Ownable: caller is not the owner');
     });
+
+    it("should not be able to transfer tokens while pause", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        let token = await getRevTokenFromRevSale(revSale);
+
+        await expectThrow(token.transfer(accounts[1], '1000'), 'Pausable: paused');
+
+        // Check transferFrom
+        await token.approve(accounts[1], '1000', { from: accounts[0] });
+        await expectThrow(token.transferFrom(accounts[0], accounts[1], '1000', { from: accounts[0] }), 'Pausable: paused');
+    });
+
+    it("should not be able to call mint on token contract directly", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        let token = await getRevTokenFromRevSale(revSale);
+
+        await expectThrow(token.mint(accounts[1], '1000'), 'Ownable: caller is not the owner');
+    });
 });
