@@ -19,8 +19,6 @@ const RESERVE_ACCOUNT_INDEX = 9;
 const REVPOP_FOUNDATION_ACCOUNT_INDEX = 10;
 const REVPOP_COMPANY_ACCOUNT_INDEX = 11;
 
-const BULK_PURCHASE_EXAMPLE = '100000000000000000000000'; // 100k * 10^18
-
 const TOTAL_SUPPLY            = '2000000000000000000000000000'; // 2bn * 10^18
 const MARKETING_SHARE         = '250000000000000000000000000'; // 250m * 10^18
 const RESERVE_SHARE           = '200000000000000000000000000'; // 200m * 10^18
@@ -58,6 +56,10 @@ let createRevSale = async () => {
     return REVSale.new((await Creator.new()).address);
 };
 
+let getEscrowFromRevSale = async (revSale) => {
+    return PeriodicAllocation.at(await revSale.periodicAllocation());
+};
+
 let getRevTokenFromRevSale = async (revSale) => {
     return REVToken.at(await revSale.REV());
 };
@@ -69,6 +71,27 @@ let getBalanceByRevSale = async (revSale, account) => {
 };
 
 contract('REVSale', accounts => {
+    it("should have token with pausable exception for escrow contract", async () => {
+        let revSale = await createRevSale();
+        let escrow = await getEscrowFromRevSale(revSale);
+        let token = await getRevTokenFromRevSale(revSale);
+
+        assert.equal(true, await token.hasException(escrow.address));
+        assert.equal(false, await token.hasException(revSale.address));
+        assert.equal(false, await token.hasException(accounts[0]));
+        assert.equal(false, await token.hasException(accounts[1]));
+        assert.equal(false, await token.hasException(accounts[2]));
+    });
+
+    it("should have token and escrow contracts with owner as REVSale", async () => {
+        let revSale = await createRevSale();
+        let escrow = await getEscrowFromRevSale(revSale);
+        let token = await getRevTokenFromRevSale(revSale);
+
+        assert.equal(revSale.address, await token.owner());
+        assert.equal(revSale.address, await escrow.owner());
+    });
+
     it("should initialize with given values", async () => {
         let revSale = await createRevSale();
         let startTime = new Date().getTime();
@@ -89,9 +112,10 @@ contract('REVSale', accounts => {
         assert.equal(TOTAL_SUPPLY, await revSale.totalSupply());
         assert.equal(startTime, await revSale.firstWindowStartTime());
         assert.equal(otherStartTime, await revSale.otherWindowsStartTime());
+        assert.equal(true, await revSale.initialized());
     });
 
-    it("should have proper total supply and create per first/other window values after calling distributeShares (without bulk purchasers)", async () => {
+    it("should have create per first/other window values after calling distributeShares (without bulk purchasers)", async () => {
         let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
@@ -111,17 +135,17 @@ contract('REVSale', accounts => {
         assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createPerOtherWindow()).toString(10));
     });
 
-    it("should have proper total supply and create per first/other window values after calling distributeShares (with bulk purchasers)", async () => {
+    it("should have proper create per first/other window values after calling distributeShares (with bulk purchasers)", async () => {
         let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
         await revSale.setBulkPurchasers(
             [accounts[1], accounts[2]],
-            [BULK_PURCHASE_EXAMPLE, BULK_PURCHASE_EXAMPLE],
+            ['100000000000000000000000', '100000000000000000000000'], // 100k * 10^18
             { from: accounts[0] }
         );
 
-        let totalBulkPurchaseAmount = new BigNumber(BULK_PURCHASE_EXAMPLE).multipliedBy(2);
+        let totalBulkPurchaseAmount = new BigNumber('100000000000000000000000').plus(new BigNumber('100000000000000000000000'));
 
         await revSale.distributeShares({ from: accounts[0] });
 
@@ -146,16 +170,22 @@ contract('REVSale', accounts => {
         await initializeRevSale(revSale, accounts);
         await revSale.distributeShares({ from: accounts[0] });
 
-        let periodicAllocation = await PeriodicAllocation.at(await revSale.periodicAllocation());
-        let periodicAllocationAddress = new String(periodicAllocation.address).valueOf();
+        let escrow = await getEscrowFromRevSale(revSale);
+        let escrowAddress = new String(escrow.address).valueOf();
 
         assert.equal(
             new BigNumber(REVPOP_COMPANY_SHARE).plus(REVPOP_FOUNDATION_SHARE).toString(10),
-            (await getBalanceByRevSale(revSale, periodicAllocationAddress)).toString(10)
+            (await getBalanceByRevSale(revSale, escrowAddress)).toString(10)
         );
 
         assert.equal(RESERVE_SHARE, await revToken.balanceOf(RESERVE_ACCOUNT));
         assert.equal(MARKETING_SHARE, await revToken.balanceOf(MARKETING_ACCOUNT));
+
+        assert.equal(true, await revSale.distributedShares());
+
+        let token = await getRevTokenFromRevSale(revSale);
+
+        assert.equal(true, await token.paused());
     });
 
     it("initialize should be called only once", async () => {
@@ -171,7 +201,7 @@ contract('REVSale', accounts => {
         await expectThrow(
             revSale.setBulkPurchasers(
                 [accounts[1], accounts[2]],
-                [BULK_PURCHASE_EXAMPLE, BULK_PURCHASE_EXAMPLE],
+                ['100000000000000000000000', '100000000000000000000000'],
                 { from: accounts[0] }
             ),
             "initialized should be == true"
@@ -184,11 +214,14 @@ contract('REVSale', accounts => {
         await initializeRevSale(revSale, accounts);
         await revSale.setBulkPurchasers(
             [accounts[1], accounts[2]],
-            [BULK_PURCHASE_EXAMPLE, BULK_PURCHASE_EXAMPLE],
+            ['100000000000000000000000', '100000000000000000000000'],
             { from: accounts[0] }
         );
 
-        // @TODO: Also check that bulk purchasers receive correct amount of tokens.
+        let token = await getRevTokenFromRevSale(revSale);
+
+        assert.equal('100000000000000000000000', (await token.balanceOf(accounts[1])).toString(10));
+        assert.equal('100000000000000000000000', (await token.balanceOf(accounts[2])).toString(10));
     });
 
     it("begin should be called only after shares are distributed", async () => {
@@ -203,6 +236,8 @@ contract('REVSale', accounts => {
         await initializeRevSale(revSale, accounts);
         await revSale.distributeShares({ from: accounts[0] });
         await revSale.begin({ from: accounts[0] });
+
+        assert.equal(true, await revSale.began());
 
         await expectThrow(revSale.begin({ from: accounts[0] }), "began should be == false");
     });
@@ -273,5 +308,65 @@ contract('REVSale', accounts => {
         await revSale.begin({ from: accounts[0] });
 
         assert.equal(0, (await revSale.today()).toString(10));
+    });
+
+    it("should be able to call pauseTokenTransfer() by the owner of revSale", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        // First, need to unpause transfer, because it is already paused. Otherwise we will get an error.
+        await revSale.unpauseTokenTransfer({ from: accounts[0] });
+
+        await revSale.pauseTokenTransfer({ from: accounts[0] });
+        await expectThrow(revSale.pauseTokenTransfer({ from: accounts[1] }), 'Ownable: caller is not the owner');
+
+        let token = await getRevTokenFromRevSale(revSale);
+
+        assert.equal(true, await token.paused());
+
+        // Check that it is impossible to call pause on token contract directly
+        await expectThrow(token.pause({ from: accounts[0] }), 'Ownable: caller is not the owner');
+    });
+
+    it("should be able to call unpauseTokenTransfer() by the owner of revSale", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        await revSale.unpauseTokenTransfer({ from: accounts[0] });
+        await expectThrow(revSale.unpauseTokenTransfer({ from: accounts[1] }), 'Ownable: caller is not the owner');
+
+        let token = await getRevTokenFromRevSale(revSale);
+
+        assert.equal(false, await token.paused());
+
+        // Check that it is impossible to call unpause on token contract directly
+        await expectThrow(token.unpause({ from: accounts[0] }), 'Ownable: caller is not the owner');
+    });
+
+    it("should be able to call burnTokens() by the owner of revSale", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        await revSale.burnTokens(MARKETING_ACCOUNT, '1000', { from: accounts[0] });
+        await expectThrow(revSale.burnTokens(MARKETING_ACCOUNT, '1000', { from: accounts[1] }), 'Ownable: caller is not the owner');
+
+        let token = await getRevTokenFromRevSale(revSale);
+
+        assert.equal(
+            new BigNumber(MARKETING_SHARE).minus(new BigNumber('1000')).toString(10),
+            (await token.balanceOf(MARKETING_ACCOUNT)).toString(10)
+        );
+
+        // Check that it is impossible to call burn on token contract directly
+        await expectThrow(token.burn(MARKETING_ACCOUNT, '1000', { from: accounts[0] }), 'Ownable: caller is not the owner');
     });
 });
