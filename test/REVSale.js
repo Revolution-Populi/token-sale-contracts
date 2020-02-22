@@ -164,11 +164,13 @@ contract('REVSale', accounts => {
         assert.equal('36920385706617590675', (await revSale.createPerOtherWindow()).toString(10));
     });
 
-    if ("should have proper distribution of tokens after calling distributeShares", async () => {
+    it("should have proper distribution of tokens after calling distributeShares", async () => {
         let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
         await revSale.distributeShares({ from: accounts[0] });
+
+        assert.equal(true, await revSale.distributedShares());
 
         let escrow = await getEscrowFromRevSale(revSale);
         let escrowAddress = new String(escrow.address).valueOf();
@@ -178,12 +180,22 @@ contract('REVSale', accounts => {
             (await getBalanceByRevSale(revSale, escrowAddress)).toString(10)
         );
 
-        assert.equal(RESERVE_SHARE, await revToken.balanceOf(RESERVE_ACCOUNT));
-        assert.equal(MARKETING_SHARE, await revToken.balanceOf(MARKETING_ACCOUNT));
+        let escrowUnlockStart = (await escrow.unlockStart()).toNumber();
+        let now = new Date().getTime() / 1000;
 
-        assert.equal(true, await revSale.distributedShares());
+        assert.equal(true, now >= escrowUnlockStart);
+        assert.equal(100, await escrow.totalShare());
+
+        let companyShare = await escrow.shares(REVPOP_COMPANY_ACCOUNT);
+
+        assert.equal(50, companyShare.proportion.toNumber());
+        assert.equal(10, companyShare.periods.toNumber());
+        assert.equal(31536000, companyShare.periodLength.toNumber());
 
         let token = await getRevTokenFromRevSale(revSale);
+
+        assert.equal(RESERVE_SHARE, await token.balanceOf(RESERVE_ACCOUNT));
+        assert.equal(MARKETING_SHARE, await token.balanceOf(MARKETING_ACCOUNT));
 
         assert.equal(true, await token.paused());
     });
