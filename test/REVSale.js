@@ -2,6 +2,7 @@ import BigNumber from 'bignumber.js';
 import expectThrow from './helpers/expectThrow';
 
 const REVSale = artifacts.require('REVSale');
+const TestREVSale = artifacts.require('TestREVSale');
 const Creator = artifacts.require('Creator');
 const REVToken = artifacts.require('REVToken');
 const PeriodicAllocation = artifacts.require('PeriodicAllocation');
@@ -11,13 +12,6 @@ const MARKETING_ACCOUNT = '0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e';
 const RESERVE_ACCOUNT = '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0';
 const REVPOP_FOUNDATION_ACCOUNT = '0xf0f5409ea22B14a20b12b330BD52a91597efBe8F';
 const REVPOP_COMPANY_ACCOUNT = '0xb7D4Ac7FCe988DA56fEf5373A6596a0144aF9924';
-
-// Indexes in ganache-cli
-const UNSOLD_TOKENS_ACCOUNT_INDEX = 7;
-const MARKETING_ACCOUNT_INDEX = 8;
-const RESERVE_ACCOUNT_INDEX = 9;
-const REVPOP_FOUNDATION_ACCOUNT_INDEX = 10;
-const REVPOP_COMPANY_ACCOUNT_INDEX = 11;
 
 const TOTAL_SUPPLY            = '2000000000000000000000000000'; // 2bn * 10^18
 const MARKETING_SHARE         = '250000000000000000000000000'; // 250m * 10^18
@@ -52,7 +46,11 @@ let initializeRevSale = async (revSale, accounts, customProps) => {
     );
 };
 
-let createRevSale = async () => {
+let createRevSale = async (test) => {
+    if (test === true) {
+        return TestREVSale.new((await Creator.new()).address);
+    }
+
     return REVSale.new((await Creator.new()).address);
 };
 
@@ -68,6 +66,10 @@ let getBalanceByRevSale = async (revSale, account) => {
     let revToken = await REVToken.at(await revSale.REV());
     
     return revToken.balanceOf(account);
+};
+
+let wait = (ms) => {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
 contract('REVSale', accounts => {
@@ -432,23 +434,26 @@ contract('REVSale', accounts => {
         await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[1] }), 'Ownable: caller is not the owner');
     });
 
-    // it("should perform assertions while buying tokens", async () => {
-    //     let revSale = await createRevSale();
+    it("should perform assertions while buying tokens", async () => {
+        let revSale = await createRevSale();
 
-    //     let startTime = parseInt((new Date().getTime() / 1000) - 1000, 10);
-    //     let otherStartTime = startTime + FIRST_PERIOD_DURATION_IN_SEC;
+        let startTime = parseInt((new Date().getTime() / 1000) - 1000, 10);
+        let otherStartTime = startTime + FIRST_PERIOD_DURATION_IN_SEC;
 
-    //     await initializeRevSale(revSale, accounts, {
-    //         startTime: startTime,
-    //         otherStartTime: otherStartTime
-    //     });
+        await initializeRevSale(revSale, accounts, {
+            startTime: startTime,
+            otherStartTime: otherStartTime
+        });
 
-    //     await revSale.distributeShares({ from: accounts[0] });
-    //     await revSale.begin({ from: accounts[0] });
+        await revSale.distributeShares({ from: accounts[0] });
 
-    //     await web3.eth.sendTransaction({ from: accounts[1], to: revSale.address, value: '1000000000000000000', gas: 100000 });
-        
-    // });
+        await expectThrow(revSale.buy({ from: accounts[1], value: '1000000000000000000' }), 'began should be == true');
+
+        await revSale.begin({ from: accounts[0] });
+
+        await expectThrow(revSale.buy({ from: accounts[1], value: '999999999999999999' }), 'msg.value should be >= MIN_ETH');
+        await expectThrow(revSale.buyWithLimit(999, 0, { from: accounts[1], value: '1000000000000000000' }), 'window should be <= numberOfOtherWindows');
+    });
 
     it("should be able to buy tokens by sending ETH to REVSale contract", async () => {
         let revSale = await createRevSale();
@@ -478,16 +483,140 @@ contract('REVSale', accounts => {
         assert.equal('2000000000000000000', (await revSale.dailyTotals(0)).toString(10));
     });
 
-    // it("should be able to buy tokens on a current window without limit checking", async () => {
-    //     let revSale = await createRevSale();
+    it("should be able to buy tokens for a specific window", async () => {
+        let revSale = await createRevSale();
 
-    //     await initializeRevSale(revSale, accounts);
-    //     await revSale.distributeShares({ from: accounts[0] });
-    //     await revSale.begin({ from: accounts[0] });
+        let startTime = parseInt((new Date().getTime() / 1000) - 1000, 10);
+        let otherStartTime = startTime + FIRST_PERIOD_DURATION_IN_SEC;
 
-    //     await revSale.buy({ from: accounts[1], value: 1 });
+        await initializeRevSale(revSale, accounts, {
+            startTime: startTime,
+            otherStartTime: otherStartTime
+        });
 
-    //     await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[0] }), 'today() should be > 0');
-    //     await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[1] }), 'Ownable: caller is not the owner');
-    // });
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        /////////////////////////////////////////////////////
+        // Window 0
+        /////////////////////////////////////////////////////
+        await revSale.buyWithLimit(0, 0, { from: accounts[1], value: '1000000000000000000' });
+
+        assert.equal('1000000000000000000', (await revSale.totalRaisedETH()).toString(10));
+        assert.equal('1000000000000000000', (await revSale.userBuys(0, accounts[1])).toString(10));
+        assert.equal('1000000000000000000', (await revSale.dailyTotals(0)).toString(10));
+
+        await revSale.buyWithLimit(0, 0, { from: accounts[1], value: '1000000000000000000' });
+
+        assert.equal('2000000000000000000', (await revSale.totalRaisedETH()).toString(10));
+        assert.equal('2000000000000000000', (await revSale.userBuys(0, accounts[1])).toString(10));
+        assert.equal('2000000000000000000', (await revSale.dailyTotals(0)).toString(10));
+
+        // Check limit
+        await expectThrow(revSale.buyWithLimit(0, '199999999999999999', { from: accounts[1], value: '1000000000000000000' }), 'dailyTotals[window] should be <= limit');
+        await revSale.buyWithLimit(0, '2000000000000000000', { from: accounts[1], value: '1000000000000000000' })
+
+        assert.equal('3000000000000000000', (await revSale.totalRaisedETH()).toString(10));
+        assert.equal('3000000000000000000', (await revSale.userBuys(0, accounts[1])).toString(10));
+        assert.equal('3000000000000000000', (await revSale.dailyTotals(0)).toString(10));
+
+        /////////////////////////////////////////////////////
+        // Window 1
+        /////////////////////////////////////////////////////
+        await revSale.buyWithLimit(1, 0, { from: accounts[1], value: '1000000000000000000' });
+
+        assert.equal('4000000000000000000', (await revSale.totalRaisedETH()).toString(10));
+        assert.equal('1000000000000000000', (await revSale.userBuys(1, accounts[1])).toString(10));
+        assert.equal('1000000000000000000', (await revSale.dailyTotals(1)).toString(10));
+
+        /////////////////////////////////////////////////////
+        // Window 360
+        /////////////////////////////////////////////////////
+        await revSale.buyWithLimit(360, 0, { from: accounts[1], value: '1000000000000000000' });
+
+        assert.equal('5000000000000000000', (await revSale.totalRaisedETH()).toString(10));
+        assert.equal('1000000000000000000', (await revSale.userBuys(360, accounts[1])).toString(10));
+        assert.equal('1000000000000000000', (await revSale.dailyTotals(360)).toString(10));
+    });
+
+    it("should be able to collect ETH by owner of the REVSale", async () => {
+        let revSale = await createRevSale();
+
+        let startTime = parseInt(new Date().getTime() / 1000, 10);
+        let otherStartTime = startTime + 3;
+
+        await initializeRevSale(revSale, accounts, {
+            startTime: startTime,
+            otherStartTime: otherStartTime
+        });
+
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        await revSale.buyWithLimit(0, 0, { from: accounts[1], value: '1000000000000000000' });
+
+        assert.equal('1000000000000000000', (await revSale.totalRaisedETH()).toString(10));
+        assert.equal('1000000000000000000', (await revSale.userBuys(0, accounts[1])).toString(10));
+        assert.equal('1000000000000000000', (await revSale.dailyTotals(0)).toString(10));
+
+        await revSale.buyWithLimit(0, 0, { from: accounts[1], value: '1000000000000000000' });
+
+        assert.equal('2000000000000000000', (await revSale.totalRaisedETH()).toString(10));
+        assert.equal('2000000000000000000', (await revSale.userBuys(0, accounts[1])).toString(10));
+        assert.equal('2000000000000000000', (await revSale.dailyTotals(0)).toString(10));
+
+        await wait(4000);
+
+        let currentBalance = new BigNumber(await web3.eth.getBalance(accounts[0]));
+
+        await revSale.collect({ from: accounts[0], gasPrice: 0 });
+
+        assert.equal(currentBalance.plus('2000000000000000000').toString(10), new BigNumber(await web3.eth.getBalance(accounts[0])).toString(10));
+    });
+
+    it("should be able to collect unsold tokens by owner of the REVSale", async () => {
+        let revSale = await createRevSale(true);
+
+        let startTime = parseInt(new Date().getTime() / 1000, 10);
+        let otherStartTime = startTime + 1;
+
+        await initializeRevSale(revSale, accounts, {
+            startTime: startTime,
+            otherStartTime: otherStartTime
+        });
+
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        // go to window 1
+        await wait(2000); // 9 seconds left to new window
+        await revSale.buyWithLimit(1, 0, { from: accounts[1], value: '1000000000000000000' });
+
+        let token = await getRevTokenFromRevSale(revSale);
+        let currentBalance = new BigNumber(await token.balanceOf(UNSOLD_TOKENS_ACCOUNT));
+
+        await revSale.setCreatePerFirstPeriod('1000', { from: accounts[0] });
+        await revSale.setCreatePerOtherPeriod('500', { from: accounts[0] });
+        await revSale.collectUnsoldTokens(1, { from: accounts[0] });
+
+        assert.equal(currentBalance.plus('1000').toString(10), (await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10));
+
+        await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
+
+        // go to window 2
+        await wait(10000); // 9 seconds left to new window
+
+        // go to window 3
+        await wait(10000); // 9 seconds left to new window
+
+        // go to window 4
+        await wait(10000); // 9 seconds left to new window
+
+        await revSale.buyWithLimit(4, 0, { from: accounts[1], value: '1000000000000000000' });
+        await revSale.collectUnsoldTokens(4, { from: accounts[0] });
+
+        assert.equal(currentBalance.plus('1000').plus('500').plus('500').toString(10), (await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10));
+
+        await expectThrow(revSale.collectUnsoldTokens(4, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
+    });
 });

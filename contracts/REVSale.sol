@@ -73,10 +73,11 @@ contract REVSale is Ownable {
         uint createPerOtherWindow
     );
 
-    event LogBuy      (uint window, address user, uint amount);
-    event LogClaim    (uint window, address user, uint amount);
-    event LogCollect  (uint amount);
-    event LogFreeze   ();
+    event LogBuy           (uint window, address user, uint amount);
+    event LogClaim         (uint window, address user, uint amount);
+    event LogCollect       (uint amount);
+    event LogCollectUnsold (uint amount);
+    event LogFreeze        ();
 
     constructor(Creator creator) public {
         REV = creator.createToken();
@@ -126,7 +127,7 @@ contract REVSale is Ownable {
             .sub(REVPOP_FOUNDATION_SHARE);
 
         uint firstWindowDuration = otherWindowsStartTime.sub(firstWindowStartTime);
-        uint otherWindowDuration = numberOfOtherWindows.mul(WINDOW_DURATION);
+        uint otherWindowDuration = numberOfOtherWindows.mul(windowDuration());
         uint totalWindowDuration = otherWindowDuration.add(firstWindowDuration);
 
         createPerFirstWindow = tokensToSell.div(totalWindowDuration).mul(FIRST_WINDOW_MULTIPLIER).mul(firstWindowDuration);
@@ -201,12 +202,16 @@ contract REVSale is Ownable {
         return windowFor(time());
     }
 
-    // Each window is WINDOW_DURATION (23 hours) long so that end-of-window rotates
+    function windowDuration() public virtual pure returns (uint) {
+        return WINDOW_DURATION;
+    }
+
+    // Each window is windowDuration() (23 hours) long so that end-of-window rotates
     // around the clock for all timezones.
     function windowFor(uint timestamp) public view returns (uint) {
         return timestamp < otherWindowsStartTime
         ? 0
-        : timestamp.sub(otherWindowsStartTime).div(WINDOW_DURATION).add(1);
+        : timestamp.sub(otherWindowsStartTime).div(windowDuration()).add(1);
     }
 
     function createOnWindow(uint window) public view returns (uint) {
@@ -291,17 +296,16 @@ contract REVSale is Ownable {
         require(began == true, "began should be == true");
         require(today() > 0, "today() should be > 0");
         require(window > 0, "window should be > 0");
-        require(window < today(), "window should be < today()");
+        require(window <= today(), "window should be <= today()");
         require(window > collectedUnsoldTokensBeforeWindow, "window should be > collectedUnsoldTokensBeforeWindow");
 
         uint unsoldTokens = 0;
-        uint dailyTotal = 0;
 
         for (uint i = collectedUnsoldTokensBeforeWindow; i < window; i++) {
-            dailyTotal = dailyTotals[window];
+            uint dailyTotal = dailyTotals[i];
 
             if (dailyTotal == 0) {
-                unsoldTokens = unsoldTokens.add(i == 0 ? createPerFirstWindow : createPerOtherWindow);
+                unsoldTokens += i == 0 ? createPerFirstWindow : createPerOtherWindow;
             }
         }
 
@@ -310,5 +314,7 @@ contract REVSale is Ownable {
         }
 
         collectedUnsoldTokensBeforeWindow = window;
+
+        emit LogCollectUnsold(unsoldTokens);
     }
 }
