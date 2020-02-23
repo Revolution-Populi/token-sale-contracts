@@ -7,7 +7,7 @@ contract PausableWithException is Pausable, Ownable {
     mapping(address => bool) public exceptions;
 
     modifier withPausableException() {
-        require(!hasException(_msgSender()), "exceptions[msg.sender] should be == true");
+        require(hasException(_msgSender()), "exceptions[msg.sender] should be == true");
 
         _;
     }

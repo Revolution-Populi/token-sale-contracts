@@ -90,6 +90,7 @@ contract REVSale is Ownable {
         require(periodicAllocation.unlockStart() == 0, "PeriodAllocation.unlockStart should be 0");
 
         REV.setPausableException(address(periodicAllocation), true);
+        REV.setPausableException(address(this), true);
     }
 
     function initialize(

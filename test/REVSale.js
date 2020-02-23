@@ -77,7 +77,7 @@ contract('REVSale', accounts => {
         let token = await getRevTokenFromRevSale(revSale);
 
         assert.equal(true, await token.hasException(escrow.address));
-        assert.equal(false, await token.hasException(revSale.address));
+        assert.equal(true, await token.hasException(revSale.address));
         assert.equal(false, await token.hasException(accounts[0]));
         assert.equal(false, await token.hasException(accounts[1]));
         assert.equal(false, await token.hasException(accounts[2]));
@@ -94,7 +94,7 @@ contract('REVSale', accounts => {
 
     it("should initialize with given values", async () => {
         let revSale = await createRevSale();
-        let startTime = new Date().getTime();
+        let startTime = parseInt(new Date().getTime() / 1000, 10);
         let otherStartTime = startTime + FIRST_PERIOD_DURATION_IN_SEC;
 
         await initializeRevSale(revSale, accounts, {
@@ -431,4 +431,63 @@ contract('REVSale', accounts => {
         await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[0] }), 'today() should be > 0');
         await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[1] }), 'Ownable: caller is not the owner');
     });
+
+    // it("should perform assertions while buying tokens", async () => {
+    //     let revSale = await createRevSale();
+
+    //     let startTime = parseInt((new Date().getTime() / 1000) - 1000, 10);
+    //     let otherStartTime = startTime + FIRST_PERIOD_DURATION_IN_SEC;
+
+    //     await initializeRevSale(revSale, accounts, {
+    //         startTime: startTime,
+    //         otherStartTime: otherStartTime
+    //     });
+
+    //     await revSale.distributeShares({ from: accounts[0] });
+    //     await revSale.begin({ from: accounts[0] });
+
+    //     await web3.eth.sendTransaction({ from: accounts[1], to: revSale.address, value: '1000000000000000000', gas: 100000 });
+        
+    // });
+
+    it("should be able to buy tokens by sending ETH to REVSale contract", async () => {
+        let revSale = await createRevSale();
+
+        let startTime = parseInt((new Date().getTime() / 1000) - 1000, 10);
+        let otherStartTime = startTime + FIRST_PERIOD_DURATION_IN_SEC;
+
+        await initializeRevSale(revSale, accounts, {
+            startTime: startTime,
+            otherStartTime: otherStartTime
+        });
+
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        await web3.eth.sendTransaction({ from: accounts[1], to: revSale.address, value: '1000000000000000000', gas: 100000 });
+
+        assert.equal('1000000000000000000', (await revSale.totalRaisedETH()).toString(10));
+        assert.equal('1000000000000000000', (await revSale.userBuys(0, accounts[1])).toString(10));
+        assert.equal('1000000000000000000', (await revSale.dailyTotals(0)).toString(10));
+
+        // The same buy explicitly calling buy()
+        await revSale.buy({ from: accounts[2], value: '1000000000000000000' });
+
+        assert.equal('2000000000000000000', (await revSale.totalRaisedETH()).toString(10));
+        assert.equal('1000000000000000000', (await revSale.userBuys(0, accounts[2])).toString(10));
+        assert.equal('2000000000000000000', (await revSale.dailyTotals(0)).toString(10));
+    });
+
+    // it("should be able to buy tokens on a current window without limit checking", async () => {
+    //     let revSale = await createRevSale();
+
+    //     await initializeRevSale(revSale, accounts);
+    //     await revSale.distributeShares({ from: accounts[0] });
+    //     await revSale.begin({ from: accounts[0] });
+
+    //     await revSale.buy({ from: accounts[1], value: 1 });
+
+    //     await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[0] }), 'today() should be > 0');
+    //     await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[1] }), 'Ownable: caller is not the owner');
+    // });
 });
