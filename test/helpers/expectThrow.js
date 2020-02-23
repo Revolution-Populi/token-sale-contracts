@@ -7,7 +7,7 @@ export default async (promise, msg) => {
         const exception = error.message.search('Exception') >= 0;
 
         if (msg) {
-            assert(error.message.search(msg) >= 0);
+            assert(error.message.indexOf(msg) >= 0);
         }
 
         assert(

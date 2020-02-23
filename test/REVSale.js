@@ -409,4 +409,26 @@ contract('REVSale', accounts => {
 
         await expectThrow(token.mint(accounts[1], '1000'), 'Ownable: caller is not the owner');
     });
+
+    it("should be able to call collect() by the owner of revSale", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        await expectThrow(revSale.collect({ from: accounts[0] }), 'today() should be > 0');
+        await expectThrow(revSale.collect({ from: accounts[1] }), 'Ownable: caller is not the owner');
+    });
+
+    it("should be able to call collectUnsoldTokens() by the owner of revSale", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[0] }), 'today() should be > 0');
+        await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[1] }), 'Ownable: caller is not the owner');
+    });
 });

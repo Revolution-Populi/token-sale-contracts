@@ -192,7 +192,7 @@ contract REVSale is Ownable {
         }
     }
 
-    function time() public view returns (uint) {
+    function time() internal view returns (uint) {
         return block.timestamp;
     }
 
