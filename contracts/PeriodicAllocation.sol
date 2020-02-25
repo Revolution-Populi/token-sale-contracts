@@ -25,7 +25,7 @@ contract PeriodicAllocation is Ownable {
         token = _token;
     }
 
-    function setUnlockStart(uint256 _unlockStart) external onlyOwner {
+    function setUnlockStart(uint256 _unlockStart) external virtual onlyOwner {
         require(unlockStart == 0, "unlockStart should be == 0");
         require(_unlockStart >= now, "_unlockStart should be >= now");
 

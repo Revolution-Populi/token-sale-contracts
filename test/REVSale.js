@@ -619,4 +619,54 @@ contract('REVSale', accounts => {
 
         await expectThrow(revSale.collectUnsoldTokens(4, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
     });
+
+    it("should be able to claim bought tokens by the buyer", async () => {
+        let revSale = await createRevSale(true);
+
+        let startTime = parseInt(new Date().getTime() / 1000, 10);
+
+        // 0 window lasts 3 seconds
+        let otherStartTime = startTime + 3; 
+
+        await initializeRevSale(revSale, accounts, {
+            startTime: startTime,
+            otherStartTime: otherStartTime
+        });
+
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        await revSale.buy({ from: accounts[1], value: '1000000000000000000' });
+
+        // go to window 1
+        await wait(2000); // 9 seconds left to new window
+        await revSale.buyWithLimit(1, 0, { from: accounts[1], value: '1000000000000000000' });
+
+        let token = await getRevTokenFromRevSale(revSale);
+        let currentBalance = new BigNumber(await token.balanceOf(UNSOLD_TOKENS_ACCOUNT));
+
+        await revSale.setCreatePerFirstPeriod('1000', { from: accounts[0] });
+        await revSale.setCreatePerOtherPeriod('500', { from: accounts[0] });
+        await revSale.collectUnsoldTokens(1, { from: accounts[0] });
+
+        assert.equal(currentBalance.plus('1000').toString(10), (await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10));
+
+        await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
+
+        // go to window 2
+        await wait(10000); // 9 seconds left to new window
+
+        // go to window 3
+        await wait(10000); // 9 seconds left to new window
+
+        // go to window 4
+        await wait(10000); // 9 seconds left to new window
+
+        await revSale.buyWithLimit(4, 0, { from: accounts[1], value: '1000000000000000000' });
+        await revSale.collectUnsoldTokens(4, { from: accounts[0] });
+
+        assert.equal(currentBalance.plus('1000').plus('500').plus('500').toString(10), (await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10));
+
+        await expectThrow(revSale.collectUnsoldTokens(4, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
+    });
 });
