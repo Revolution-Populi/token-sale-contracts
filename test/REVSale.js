@@ -1,5 +1,6 @@
 import BigNumber from 'bignumber.js';
 import expectThrow from './helpers/expectThrow';
+import assertBNEqual from './helpers/assertBNEqual';
 
 const REVSale = artifacts.require('REVSale');
 const TestREVSale = artifacts.require('TestREVSale');
@@ -135,6 +136,23 @@ contract('REVSale', accounts => {
 
         assert.equal(DEFAULT_TOKENS_IN_FIRST_PERIOD, (await revSale.createPerFirstWindow()).toString(10));
         assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createPerOtherWindow()).toString(10));
+    });
+
+    it("should be able to call removePausableException() by the owner of revSale", async () => {
+        let revSale = await createRevSale();
+
+        await initializeRevSale(revSale, accounts);
+        await revSale.distributeShares({ from: accounts[0] });
+        await revSale.begin({ from: accounts[0] });
+
+        let escrow = await getEscrowFromRevSale(revSale);
+        let escrowAddress = new String(escrow.address).valueOf();
+
+        let token = await getRevTokenFromRevSale(revSale);
+
+        await revSale.removePausableException(escrowAddress, { from: accounts[0] });
+        assert.equal(false, await token.hasException(escrowAddress));
+        await expectThrow(revSale.removePausableException(escrowAddress, { from: accounts[1] }), 'Ownable: caller is not the owner');
     });
 
     it("should have proper create per first/other window values after calling distributeShares (with bulk purchasers)", async () => {
@@ -620,13 +638,13 @@ contract('REVSale', accounts => {
         await expectThrow(revSale.collectUnsoldTokens(4, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
     });
 
-    it("should be able to claim bought tokens by the buyer", async () => {
+    it("should be able to claim tokens after user bought them", async () => {
         let revSale = await createRevSale(true);
 
         let startTime = parseInt(new Date().getTime() / 1000, 10);
 
         // 0 window lasts 3 seconds
-        let otherStartTime = startTime + 3; 
+        let otherStartTime = startTime + 3;
 
         await initializeRevSale(revSale, accounts, {
             startTime: startTime,
@@ -636,37 +654,105 @@ contract('REVSale', accounts => {
         await revSale.distributeShares({ from: accounts[0] });
         await revSale.begin({ from: accounts[0] });
 
+        // in TestREVSale we have windowDuration() = 10 seconds, so all calculations of distribution per window is wrong... set correct values manually
+        await revSale.setCreatePerFirstPeriod(DEFAULT_TOKENS_IN_FIRST_PERIOD);
+        await revSale.setCreatePerOtherPeriod(DEFAULT_TOKENS_IN_OTHER_PERIOD);
+
+        assert.equal(DEFAULT_TOKENS_IN_FIRST_PERIOD, (await revSale.createPerFirstWindow()).toString(10));
+        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createPerOtherWindow()).toString(10));
+
         await revSale.buy({ from: accounts[1], value: '1000000000000000000' });
+        await revSale.buy({ from: accounts[2], value: '2000000000000000000' });
+
+        // total on window 0 = 3 eth
+
+        // check that it's not yet allowed to claim tokens for windows 0
+        await expectThrow(revSale.claim(0, { from: accounts[1] }), 'today() should be > window');
+        await expectThrow(revSale.claim(0, { from: accounts[2] }), 'today() should be > window');
 
         // go to window 1
-        await wait(2000); // 9 seconds left to new window
-        await revSale.buyWithLimit(1, 0, { from: accounts[1], value: '1000000000000000000' });
+        await wait(3000);
 
+        // check that users can claim tokens for window 0
         let token = await getRevTokenFromRevSale(revSale);
-        let currentBalance = new BigNumber(await token.balanceOf(UNSOLD_TOKENS_ACCOUNT));
+        let acc1Balance = new BigNumber(await token.balanceOf(accounts[1]));
+        let acc2Balance = new BigNumber(await token.balanceOf(accounts[2]));
 
-        await revSale.setCreatePerFirstPeriod('1000', { from: accounts[0] });
-        await revSale.setCreatePerOtherPeriod('500', { from: accounts[0] });
-        await revSale.collectUnsoldTokens(1, { from: accounts[0] });
+        await revSale.claim(0, { from: accounts[1] });
+        await revSale.claim(0, { from: accounts[2] });
 
-        assert.equal(currentBalance.plus('1000').toString(10), (await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10));
+        let acc1BalanceNew = acc1Balance.plus('16428571000000000000000000');
+        let acc2BalanceNew = acc2Balance.plus('32857142000000000000000000');
+        let totalBoughtTokens = new BigNumber('49285713000000000000000000');
 
-        await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
+
+        // If user tries to claim once more on the same window, do nothing
+        await revSale.claim(0, { from: accounts[1] });
+        await revSale.claim(0, { from: accounts[2] });
+
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
+
+        // Now make purchases for window 1 (it is active)
+        await revSale.buyWithLimit(1, 0, { from: accounts[1], value: '1000000000000000000' });
+        await revSale.buyWithLimit(1, 0, { from: accounts[2], value: '1000000000000000000' });
+
+        // total on window 1 = 2 eth
+
+        // check that it's not yet allowed to claim tokens for windows 1
+        await expectThrow(revSale.claim(1, { from: accounts[1] }), 'today() should be > window');
+        await expectThrow(revSale.claim(1, { from: accounts[2] }), 'today() should be > window');
+
+        // now check that we can buy tokens for next window as well, even if currently it is window 1
+        revSale.buyWithLimit(2, 0, { from: accounts[1], value: '1000000000000000000' });
 
         // go to window 2
-        await wait(10000); // 9 seconds left to new window
+        await wait(10000);
+
+        await revSale.claim(1, { from: accounts[1] });
+        await revSale.claim(1, { from: accounts[2] });
+
+        acc1BalanceNew = acc1BalanceNew.plus('18000000000000000000');
+        acc2BalanceNew = acc2BalanceNew.plus('18000000000000000000');
+        totalBoughtTokens = totalBoughtTokens.plus('36000000000000000000');
+
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
+
+        // If user tries to claim once more on the same window, do nothing
+        await revSale.claim(1, { from: accounts[1] });
+        await revSale.claim(1, { from: accounts[2] });
+
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
+
+        // check that it's not yet allowed to claim tokens for windows 2
+        await expectThrow(revSale.claim(2, { from: accounts[1] }), 'today() should be > window');
 
         // go to window 3
-        await wait(10000); // 9 seconds left to new window
+        await wait(10000);
 
-        // go to window 4
-        await wait(10000); // 9 seconds left to new window
+        await revSale.claim(2, { from: accounts[1] });
 
-        await revSale.buyWithLimit(4, 0, { from: accounts[1], value: '1000000000000000000' });
-        await revSale.collectUnsoldTokens(4, { from: accounts[0] });
+        acc1BalanceNew = acc1BalanceNew.plus('36000000000000000000');
+        totalBoughtTokens = totalBoughtTokens.plus('36000000000000000000');
 
-        assert.equal(currentBalance.plus('1000').plus('500').plus('500').toString(10), (await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
 
-        await expectThrow(revSale.collectUnsoldTokens(4, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
+        // If user tries to claim once more on the same window, do nothing
+        await revSale.claim(2, { from: accounts[1] });
+        await revSale.claim(2, { from: accounts[2] });
+
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
     });
 });

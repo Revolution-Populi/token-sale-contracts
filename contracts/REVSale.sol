@@ -177,6 +177,10 @@ contract REVSale is Ownable {
         REV.burn(account, amount);
     }
 
+    function removePausableException(address _address) public onlyOwner {
+        REV.setPausableException(_address, false);
+    }
+
     function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public onlyOwner {
         require(initialized == true, "initialized should be == true");
         require(distributedShares == false, "distributedShares should be == false");
