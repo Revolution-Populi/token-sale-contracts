@@ -130,8 +130,10 @@ contract REVSale is Ownable {
         uint otherWindowDuration = numberOfOtherWindows.mul(windowDuration());
         uint totalWindowDuration = otherWindowDuration.add(firstWindowDuration);
 
+        // For the window 0 we sell 3x tokens more than in other windows.
+        // Window 0 also lasts 5 days (while other windows last 23 hours).
         createPerFirstWindow = tokensToSell.div(totalWindowDuration).mul(FIRST_WINDOW_MULTIPLIER).mul(firstWindowDuration);
-        createPerOtherWindow = tokensToSell.sub(createPerFirstWindow).div(otherWindowDuration);
+        createPerOtherWindow = tokensToSell.sub(createPerFirstWindow).div(otherWindowDuration).mul(windowDuration());
 
         REV.transfer(address(periodicAllocation), REVPOP_COMPANY_SHARE.add(REVPOP_FOUNDATION_SHARE));
         REV.transfer(wallets[2], MARKETING_SHARE);

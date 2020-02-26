@@ -21,7 +21,7 @@ const REVPOP_FOUNDATION_SHARE = '200000000000000000000000000'; // 200m * 10^18
 const REVPOP_COMPANY_SHARE    = '200000000000000000000000000'; // 200m * 10^18
 
 const DEFAULT_TOKENS_IN_FIRST_PERIOD = '49285714285714285713600000';
-const DEFAULT_TOKENS_IN_OTHER_PERIOD = '36926807760141093474';
+const DEFAULT_TOKENS_IN_OTHER_PERIOD = '3057539682539682539647200';
 
 const FIRST_PERIOD_DURATION_IN_SEC = 432000; // 5 days
 const NUMBER_OF_OTHER_WINDOWS = 360;
@@ -181,7 +181,7 @@ contract('REVSale', accounts => {
         );
 
         assert.equal('49277142857142857141856000', (await revSale.createPerFirstWindow()).toString(10));
-        assert.equal('36920385706617590675', (await revSale.createPerOtherWindow()).toString(10));
+        assert.equal('3057007936507936507890000', (await revSale.createPerOtherWindow()).toString(10));
     });
 
     it("should have proper distribution of tokens after calling distributeShares", async () => {
@@ -685,17 +685,17 @@ contract('REVSale', accounts => {
         let acc2BalanceNew = acc2Balance.plus('32857142000000000000000000');
         let totalBoughtTokens = new BigNumber('49285713000000000000000000');
 
-        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
-        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
-        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w0 acc1');
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w0 acc2');
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10), 'claim w0 total');
 
         // If user tries to claim once more on the same window, do nothing
         await revSale.claim(0, { from: accounts[1] });
         await revSale.claim(0, { from: accounts[2] });
 
-        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
-        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
-        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w0 acc1');
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w0 acc2');
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10), 'claim w0 total');
 
         // Now make purchases for window 1 (it is active)
         await revSale.buyWithLimit(1, 0, { from: accounts[1], value: '1000000000000000000' });
@@ -716,21 +716,21 @@ contract('REVSale', accounts => {
         await revSale.claim(1, { from: accounts[1] });
         await revSale.claim(1, { from: accounts[2] });
 
-        acc1BalanceNew = acc1BalanceNew.plus('18000000000000000000');
-        acc2BalanceNew = acc2BalanceNew.plus('18000000000000000000');
-        totalBoughtTokens = totalBoughtTokens.plus('36000000000000000000');
+        acc1BalanceNew = acc1BalanceNew.plus('1528769000000000000000000');
+        acc2BalanceNew = acc2BalanceNew.plus('1528769000000000000000000');
+        totalBoughtTokens = totalBoughtTokens.plus('3057538000000000000000000');
 
-        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
-        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
-        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w1 acc1');
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w1 acc2');
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10), 'claim w1 total');
 
         // If user tries to claim once more on the same window, do nothing
         await revSale.claim(1, { from: accounts[1] });
         await revSale.claim(1, { from: accounts[2] });
 
-        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
-        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
-        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w1 acc1');
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w1 acc2');
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10), 'claim w1 total');
 
         // check that it's not yet allowed to claim tokens for windows 2
         await expectThrow(revSale.claim(2, { from: accounts[1] }), 'today() should be > window');
@@ -740,19 +740,19 @@ contract('REVSale', accounts => {
 
         await revSale.claim(2, { from: accounts[1] });
 
-        acc1BalanceNew = acc1BalanceNew.plus('36000000000000000000');
-        totalBoughtTokens = totalBoughtTokens.plus('36000000000000000000');
+        acc1BalanceNew = acc1BalanceNew.plus('3057539000000000000000000');
+        totalBoughtTokens = totalBoughtTokens.plus('3057539000000000000000000');
 
-        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
-        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
-        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w2 acc1');
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w2 acc2');
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10), 'claim w2 total');
 
         // If user tries to claim once more on the same window, do nothing
         await revSale.claim(2, { from: accounts[1] });
         await revSale.claim(2, { from: accounts[2] });
 
-        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10));
-        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10));
-        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10));
+        assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w2 acc1');
+        assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w2 acc2');
+        assert.equal(new BigNumber(await revSale.totalBoughtTokens()).toString(10), totalBoughtTokens.toString(10), 'claim w2 total');
     });
 });
