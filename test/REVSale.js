@@ -81,6 +81,7 @@ contract('REVSale', accounts => {
 
         assert.equal(true, await token.hasException(escrow.address));
         assert.equal(true, await token.hasException(revSale.address));
+        assert.equal(true, await token.hasException(MARKETING_ACCOUNT));
         assert.equal(false, await token.hasException(accounts[0]));
         assert.equal(false, await token.hasException(accounts[1]));
         assert.equal(false, await token.hasException(accounts[2]));

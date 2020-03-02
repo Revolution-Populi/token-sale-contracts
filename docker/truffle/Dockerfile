@@ -14,4 +14,3 @@ RUN git clone https://github.com/poanetwork/solidity-flattener && cd solidity-fl
 COPY flattener.json /var/solidity-flattener/config.json
 
 WORKDIR /var/www
-ENTRYPOINT ["node", "./node_modules/remixd/bin/remixd", "-s", "/var/www/contracts", "--remix-ide" ,"https://remix.ethereum.org"]

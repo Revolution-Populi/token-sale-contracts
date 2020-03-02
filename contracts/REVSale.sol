@@ -92,6 +92,7 @@ contract REVSale is Ownable {
 
         REV.setPausableException(address(periodicAllocation), true);
         REV.setPausableException(address(this), true);
+        REV.setPausableException(wallets[2], true);
     }
 
     function initialize(
