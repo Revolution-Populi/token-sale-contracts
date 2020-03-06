@@ -38,27 +38,27 @@ contract PeriodicAllocation is Ownable {
     }
 
     // If the time of freezing expired will return the funds to the owner.
-    function unlockFor(address _owner) public {
+    function unlockFor(address _beneficiary) public {
         require(unlockStart > 0, "unlockStart should be > 0");
         require(
-            now >= (unlockStart.add(shares[_owner].periodLength)),
-            "block.timestamp should be >= (unlockStart.add(shares[_owner].periodLength))"
+            now >= (unlockStart.add(shares[_beneficiary].periodLength)),
+            "block.timestamp should be >= (unlockStart.add(shares[_beneficiary].periodLength))"
         );
 
-        uint256 share = shares[_owner].proportion;
-        uint256 periodsSinceUnlockStart = (now.sub(unlockStart)).div(shares[_owner].periodLength);
+        uint256 share = shares[_beneficiary].proportion;
+        uint256 periodsSinceUnlockStart = (now.sub(unlockStart)).div(shares[_beneficiary].periodLength);
 
-        if (periodsSinceUnlockStart < shares[_owner].periods) {
-            share = share.div(shares[_owner].periods).mul(periodsSinceUnlockStart);
+        if (periodsSinceUnlockStart < shares[_beneficiary].periods) {
+            share = share.mul(periodsSinceUnlockStart).div(shares[_beneficiary].periods);
         }
 
-        share = share.sub(unlocked[_owner]);
+        share = share.sub(unlocked[_beneficiary]);
 
         if (share > 0) {
-            uint256 unlockedToken = token.balanceOf(address(this)).mul(share).div(totalShare);
             totalShare = totalShare.sub(share);
-            unlocked[_owner] += share;
-            token.transfer(_owner,unlockedToken);
+            unlocked[_beneficiary] += share;
+            uint256 unlockedToken = token.balanceOf(address(this)).mul(share).div(totalShare.add(share));
+            token.transfer(_beneficiary,unlockedToken);
         }
     }
 }

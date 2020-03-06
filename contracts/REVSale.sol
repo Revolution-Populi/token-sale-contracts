@@ -2,24 +2,26 @@ pragma solidity ^0.6.0;
 
 import './Ownable.sol';
 import './REVToken.sol';
+import './SafeERC20.sol';
 import './SafeMath.sol';
 import './Creator.sol';
 
 contract REVSale is Ownable {
     using SafeMath for uint256;
+    using SafeERC20 for REVToken;
 
-    uint constant MIN_ETH = 1 ether;
-    uint constant FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
-    uint constant WINDOW_DURATION = 23 hours;
+    uint constant public MIN_ETH = 1 ether;
+    uint constant public FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
+    uint constant public WINDOW_DURATION = 23 hours;
 
-    uint constant MARKETING_SHARE = 250000000 ether;
-    uint constant RESERVE_SHARE = 200000000 ether;
-    uint constant REVPOP_FOUNDATION_SHARE = 200000000 ether;
-    uint constant REVPOP_FOUNDATION_PERIOD_LENGTH = 365 days;
-    uint constant REVPOP_FOUNDATION_PERIODS = 10; // 10 years
-    uint constant REVPOP_COMPANY_SHARE = 200000000 ether;
-    uint constant REVPOP_COMPANY_PERIOD_LENGTH = 365 days;
-    uint constant REVPOP_COMPANY_PERIODS = 10; // 10 years
+    uint constant public MARKETING_SHARE = 250000000 ether;
+    uint constant public RESERVE_SHARE = 200000000 ether;
+    uint constant public REVPOP_FOUNDATION_SHARE = 200000000 ether;
+    uint constant public REVPOP_FOUNDATION_PERIOD_LENGTH = 365 days;
+    uint constant public REVPOP_FOUNDATION_PERIODS = 10; // 10 years
+    uint constant public REVPOP_COMPANY_SHARE = 200000000 ether;
+    uint constant public REVPOP_COMPANY_PERIOD_LENGTH = 365 days;
+    uint constant public REVPOP_COMPANY_PERIODS = 10; // 10 years
 
     address[5] public wallets = [
         // RevPop.org foundation
@@ -95,6 +97,12 @@ contract REVSale is Ownable {
         REV.setPausableException(wallets[2], true);
     }
 
+    function renounceOwnership() public override onlyOwner {
+        require(address(this).balance == 0, "address(this).balance should be == 0");
+
+        super.renounceOwnership();
+    }
+
     function initialize(
         uint _totalSupply,
         uint _firstWindowStartTime,
@@ -105,15 +113,44 @@ contract REVSale is Ownable {
         require(_totalSupply > 0, "_totalSupply should be > 0");
         require(_firstWindowStartTime < _otherWindowsStartTime, "_firstWindowStartTime should be < _otherWindowsStartTime");
         require(_numberOfOtherWindows > 0, "_numberOfOtherWindows should be > 0");
+        require(_totalSupply > totalReservedTokens(), "_totalSupply should be more than totalReservedTokens()");
 
         numberOfOtherWindows = _numberOfOtherWindows;
         totalSupply = _totalSupply;
         firstWindowStartTime = _firstWindowStartTime;
         otherWindowsStartTime = _otherWindowsStartTime;
 
-        REV.mint(address(this), totalSupply);
-
         initialized = true;
+
+        REV.mint(address(this), totalSupply);
+    }
+
+    function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public onlyOwner {
+        require(initialized == true, "initialized should be == true");
+        require(distributedShares == false, "distributedShares should be == false");
+
+        uint count = _purchasers.length;
+
+        require(count > 0, "count should be > 0");
+        require(count == _tokens.length, "count should be == _tokens.length");
+
+        uint needTokens = 0;
+
+        for (uint i = 0; i < count; i++) {
+            require(_tokens[i] > 0, "_tokens[i] should be > 0");
+
+            needTokens = needTokens.add(_tokens[i]);
+        }
+
+        require(
+            REV.balanceOf(address(this)).sub(totalReservedTokens()) > needTokens,
+            "REV.balanceOf(address(this)).sub(totalReservedTokens()) should be > needTokens"
+        );
+
+        for (uint i = 0; i < count; i++) {
+            REV.safeTransfer(_purchasers[i], _tokens[i]);
+            totalBulkPurchasedTokens = totalBulkPurchasedTokens.add(_tokens[i]);
+        }
     }
 
     function distributeShares() public onlyOwner {
@@ -133,12 +170,14 @@ contract REVSale is Ownable {
 
         // For the window 0 we sell 3x tokens more than in other windows.
         // Window 0 also lasts 5 days (while other windows last 23 hours).
-        createPerFirstWindow = tokensToSell.div(totalWindowDuration).mul(FIRST_WINDOW_MULTIPLIER).mul(firstWindowDuration);
-        createPerOtherWindow = tokensToSell.sub(createPerFirstWindow).div(otherWindowDuration).mul(windowDuration());
+        createPerFirstWindow = tokensToSell.mul(FIRST_WINDOW_MULTIPLIER).mul(firstWindowDuration).div(totalWindowDuration);
+        createPerOtherWindow = tokensToSell.sub(createPerFirstWindow).mul(windowDuration()).div(otherWindowDuration);
 
-        REV.transfer(address(periodicAllocation), REVPOP_COMPANY_SHARE.add(REVPOP_FOUNDATION_SHARE));
-        REV.transfer(wallets[2], MARKETING_SHARE);
-        REV.transfer(wallets[3], RESERVE_SHARE);
+        distributedShares = true;
+
+        REV.safeTransfer(address(periodicAllocation), REVPOP_COMPANY_SHARE.add(REVPOP_FOUNDATION_SHARE));
+        REV.safeTransfer(wallets[2], MARKETING_SHARE);
+        REV.safeTransfer(wallets[3], RESERVE_SHARE);
 
         periodicAllocation.addShare(wallets[0], 50, REVPOP_FOUNDATION_PERIODS, REVPOP_FOUNDATION_PERIOD_LENGTH);
         periodicAllocation.addShare(wallets[1], 50, REVPOP_COMPANY_PERIODS, REVPOP_COMPANY_PERIOD_LENGTH);
@@ -157,8 +196,10 @@ contract REVSale is Ownable {
             createPerFirstWindow,
             createPerOtherWindow
         );
+    }
 
-        distributedShares = true;
+    function totalReservedTokens() internal pure returns (uint) {
+        return MARKETING_SHARE.add(RESERVE_SHARE).add(REVPOP_COMPANY_SHARE).add(REVPOP_FOUNDATION_SHARE);
     }
 
     function begin() public onlyOwner {
@@ -182,23 +223,6 @@ contract REVSale is Ownable {
 
     function removePausableException(address _address) public onlyOwner {
         REV.setPausableException(_address, false);
-    }
-
-    function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public onlyOwner {
-        require(initialized == true, "initialized should be == true");
-        require(distributedShares == false, "distributedShares should be == false");
-
-        uint count = _purchasers.length;
-
-        require(count > 0, "count should be > 0");
-        require(count == _tokens.length, "count should be == _tokens.length");
-
-        for (uint i = 0; i < count; i++) {
-            require(REV.balanceOf(address(this)) > _tokens[i], "REV.balanceOf(address(this)) should be > _tokens[i]");
-
-            REV.transfer(_purchasers[i], _tokens[i]);
-            totalBulkPurchasedTokens = totalBulkPurchasedTokens.add(_tokens[i]);
-        }
     }
 
     function time() internal view returns (uint) {
@@ -276,7 +300,7 @@ contract REVSale is Ownable {
 
         claimed[window][msg.sender] = true;
 
-        REV.transfer(msg.sender, reward);
+        REV.safeTransfer(msg.sender, reward);
 
         emit LogClaim(window, msg.sender, reward);
     }
@@ -316,11 +340,11 @@ contract REVSale is Ownable {
             }
         }
 
-        if (unsoldTokens > 0) {
-            REV.transfer(wallets[4], unsoldTokens);
-        }
-
         collectedUnsoldTokensBeforeWindow = window;
+
+        if (unsoldTokens > 0) {
+            REV.safeTransfer(wallets[4], unsoldTokens);
+        }
 
         emit LogCollectUnsold(unsoldTokens);
     }

@@ -20,8 +20,8 @@ const RESERVE_SHARE           = '200000000000000000000000000'; // 200m * 10^18
 const REVPOP_FOUNDATION_SHARE = '200000000000000000000000000'; // 200m * 10^18
 const REVPOP_COMPANY_SHARE    = '200000000000000000000000000'; // 200m * 10^18
 
-const DEFAULT_TOKENS_IN_FIRST_PERIOD = '49285714285714285713600000';
-const DEFAULT_TOKENS_IN_OTHER_PERIOD = '3057539682539682539647200';
+const DEFAULT_TOKENS_IN_FIRST_PERIOD = '49285714285714285714285714';
+const DEFAULT_TOKENS_IN_OTHER_PERIOD = '3057539682539682539682539';
 
 const FIRST_PERIOD_DURATION_IN_SEC = 432000; // 5 days
 const NUMBER_OF_OTHER_WINDOWS = 360;
@@ -181,8 +181,8 @@ contract('REVSale', accounts => {
             (await getBalanceByRevSale(revSale, revSale.address)).toString(10)
         );
 
-        assert.equal('49277142857142857141856000', (await revSale.createPerFirstWindow()).toString(10));
-        assert.equal('3057007936507936507890000', (await revSale.createPerOtherWindow()).toString(10));
+        assert.equal('49277142857142857142857142', (await revSale.createPerFirstWindow()).toString(10));
+        assert.equal('3057007936507936507936507', (await revSale.createPerOtherWindow()).toString(10));
     });
 
     it("should have proper distribution of tokens after calling distributeShares", async () => {
@@ -245,15 +245,38 @@ contract('REVSale', accounts => {
         let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
+
+        await expectThrow(revSale.setBulkPurchasers(
+            [accounts[1]],
+            [0],
+            { from: accounts[0] }
+        ), "_tokens[i] should be > 0");
+
+        let totalSupplyMinusReservedTokens = new BigNumber(TOTAL_SUPPLY)
+            .minus(MARKETING_SHARE)
+            .minus(RESERVE_SHARE)
+            .minus(REVPOP_COMPANY_SHARE)
+            .minus(REVPOP_FOUNDATION_SHARE);
+
+        await expectThrow(revSale.setBulkPurchasers(
+            [accounts[1]],
+            [totalSupplyMinusReservedTokens.plus(1)],
+            { from: accounts[0] }
+        ), "REV.balanceOf(address(this)).sub(totalReservedTokens()) should be > needTokens");
+
         await revSale.setBulkPurchasers(
             [accounts[1], accounts[2]],
-            ['100000000000000000000000', '100000000000000000000000'],
+            [totalSupplyMinusReservedTokens.minus('100000000000000000000001'), '100000000000000000000000'],
             { from: accounts[0] }
         );
 
         let token = await getRevTokenFromRevSale(revSale);
 
-        assert.equal('100000000000000000000000', (await token.balanceOf(accounts[1])).toString(10));
+        assert.equal(
+            totalSupplyMinusReservedTokens.minus('100000000000000000000001').toString(10), 
+            (await token.balanceOf(accounts[1])).toString(10)
+        );
+
         assert.equal('100000000000000000000000', (await token.balanceOf(accounts[2])).toString(10));
     });
 
@@ -293,8 +316,12 @@ contract('REVSale', accounts => {
         let revSale = await createRevSale();
 
         await expectThrow(initializeRevSale(revSale, accounts, { totalSupply: 0 }), '_totalSupply should be > 0');
+        await expectThrow(initializeRevSale(revSale, accounts, { totalSupply: '850000000000000000000000000' }), '_totalSupply should be more than totalReservedTokens()');
         await expectThrow(initializeRevSale(revSale, accounts, { startTime: 10, otherStartTime: 9 }), '_firstWindowStartTime should be < _otherWindowsStartTime');
         await expectThrow(initializeRevSale(revSale, accounts, { numberOfOtherWindows: 0 }), '_numberOfOtherWindows should be > 0');
+
+        // Check that at totalSupply bigger than all shares for at least on 1 token is OK
+        await initializeRevSale(revSale, accounts, { totalSupply: '850000000000000000000000001' });
     });
 
     it("should return correct token amount while calling createOnWindow()", async () => {
@@ -304,10 +331,10 @@ contract('REVSale', accounts => {
         await revSale.distributeShares({ from: accounts[0] });
         await revSale.begin({ from: accounts[0] });
 
-        assert.equal(DEFAULT_TOKENS_IN_FIRST_PERIOD, await revSale.createOnWindow(0));
-        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(1));
-        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(180));
-        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, await revSale.createOnWindow(360));
+        assert.equal(DEFAULT_TOKENS_IN_FIRST_PERIOD, (await revSale.createOnWindow(0)).toString(10));
+        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createOnWindow(1)).toString(10));
+        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createOnWindow(180)).toString(10));
+        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createOnWindow(360)).toString(10));
     });
 
     it("should return correct window while calling windowFor()", async () => {
@@ -588,9 +615,14 @@ contract('REVSale', accounts => {
 
         let currentBalance = new BigNumber(await web3.eth.getBalance(accounts[0]));
 
-        await revSale.collect({ from: accounts[0], gasPrice: 0 });
+        await expectThrow(revSale.renounceOwnership({ from: accounts[0], gasPrice: 0, gas: 0 }), 'address(this).balance should be == 0');
+        await revSale.collect({ from: accounts[0], gasPrice: 0, gas: 0 });
 
         assert.equal(currentBalance.plus('2000000000000000000').toString(10), new BigNumber(await web3.eth.getBalance(accounts[0])).toString(10));
+
+        await revSale.renounceOwnership();
+
+        assert.equal('0x0000000000000000000000000000000000000000', await revSale.owner());
     });
 
     it("should be able to collect unsold tokens by owner of the REVSale", async () => {

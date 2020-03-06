@@ -1,19 +1,19 @@
 pragma solidity ^0.6.0;
 
-import "./Pausable.sol";
-import "./Ownable.sol";
+import './Pausable.sol';
+import './Ownable.sol';
 
 contract PausableWithException is Pausable, Ownable {
     mapping(address => bool) public exceptions;
 
     modifier whenNotPaused() override {
-        require(!paused() || hasException(_msgSender()), "Pausable: paused");
+        require(!paused() || hasException(_msgSender()), "Pausable: paused (and no exception)");
 
         _;
     }
 
     modifier whenNotPausedWithoutException() {
-        require(!paused() || hasException(_msgSender()), "Pausable: paused");
+        require(!paused(), "Pausable: paused");
 
         _;
     }
