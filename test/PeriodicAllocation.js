@@ -1,7 +1,6 @@
 require('babel-polyfill');
 
 import expectThrow from './helpers/expectThrow';
-import assertBNEqual from './helpers/assertBNEqual';
 
 const REVToken = artifacts.require('REVToken');
 const PeriodicAllocation = artifacts.require('PeriodicAllocation');
@@ -12,7 +11,6 @@ contract('PeriodicAllocation', function (accounts) {
     }
 
     it('should unlock tokens by equal parts', async () => {
-
         const tokenHolders = [
             '0xd12cFD596279CDb76915827d5039936cc48e2B8D',
             '0xbd44980Ca3B93Ce93A5C7393F93E6A3dD545EF23'

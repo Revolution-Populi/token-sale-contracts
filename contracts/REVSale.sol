@@ -10,34 +10,50 @@ contract REVSale is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for REVToken;
 
-    uint constant public MIN_ETH = 1 ether;
+    uint constant public MIN_ETH = 1 ether; // !!! for real ICO change to 1 ether
     uint constant public FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
-    uint constant public WINDOW_DURATION = 23 hours;
+    uint constant public WINDOW_DURATION = 23 hours; // !!! for real ICO change to 23 hours
 
-    uint constant public MARKETING_SHARE = 250000000 ether;
-    uint constant public RESERVE_SHARE = 200000000 ether;
+    uint constant public MARKETING_SHARE = 200000000 ether;
+    uint constant public TEAM_MEMBER_1_SHARE = 45000000 ether;
+    uint constant public TEAM_MEMBER_2_SHARE = 45000000 ether;
+    uint constant public TEAM_MEMBER_3_SHARE = 45000000 ether;
+    uint constant public TEAM_MEMBER_4_SHARE = 45000000 ether;
+    uint constant public TEAM_MEMBER_5_SHARE = 20000000 ether;
     uint constant public REVPOP_FOUNDATION_SHARE = 200000000 ether;
-    uint constant public REVPOP_FOUNDATION_PERIOD_LENGTH = 365 days;
-    uint constant public REVPOP_FOUNDATION_PERIODS = 10; // 10 years
+    uint constant public REVPOP_FOUNDATION_PERIOD_LENGTH = 365 days; // !!! for real ICO change to 365 days
+    uint constant public REVPOP_FOUNDATION_PERIODS = 10; // 10 days (!!! for real ICO it would be 10 years)
     uint constant public REVPOP_COMPANY_SHARE = 200000000 ether;
-    uint constant public REVPOP_COMPANY_PERIOD_LENGTH = 365 days;
-    uint constant public REVPOP_COMPANY_PERIODS = 10; // 10 years
+    uint constant public REVPOP_COMPANY_PERIOD_LENGTH = 365 days; // !!! for real ICO change to 365 days
+    uint constant public REVPOP_COMPANY_PERIODS = 10; // 10 days (!!! for real ICO it would be 10 years)
 
-    address[5] public wallets = [
+    address[9] public wallets = [
         // RevPop.org foundation
-        0xf0f5409ea22B14a20b12b330BD52a91597efBe8F,
+        0x26be1e82026BB50742bBF765c8b1665bCB763c4c,
 
         // RevPop the company
-        0xb7D4Ac7FCe988DA56fEf5373A6596a0144aF9924,
+        0x4A2d3b4475dA7E634154F1868e689705bDCEEF4c,
 
         // Marketing
-        0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e,
+        0x73d3F88BF15EB48e94E6583968041cC850d61D62,
 
-        // Reserve currency
-        0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0,
+        // Team member 1
+        0x1F3eFCe792f9744d919eee34d23e054631351eBc,
+
+        // Team member 2
+        0xEB7bb38D821219aE20d3Df7A80A161563CDe5f1b,
+
+        // Team member 3
+        0x9F3868cF5FEdb90Df9D9974A131dE6B56B3aA7Ca,
+
+        // Team member 4
+        0xE7320724CA4C20aEb193472D3082593f6c58A3C5,
+
+        // Team member 5
+        0xCde8311aa7AAbECDEf84179D93a04005C8C549c0,
 
         // Unsold tokens taker
-        0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E
+        0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e
     ];
 
     REVToken public REV;                   // The REV token itself
@@ -160,7 +176,11 @@ contract REVSale is Ownable {
         uint tokensToSell = totalSupply
             .sub(totalBulkPurchasedTokens)
             .sub(MARKETING_SHARE)
-            .sub(RESERVE_SHARE)
+            .sub(TEAM_MEMBER_1_SHARE)
+            .sub(TEAM_MEMBER_2_SHARE)
+            .sub(TEAM_MEMBER_3_SHARE)
+            .sub(TEAM_MEMBER_4_SHARE)
+            .sub(TEAM_MEMBER_5_SHARE)
             .sub(REVPOP_COMPANY_SHARE)
             .sub(REVPOP_FOUNDATION_SHARE);
 
@@ -177,14 +197,18 @@ contract REVSale is Ownable {
 
         REV.safeTransfer(address(periodicAllocation), REVPOP_COMPANY_SHARE.add(REVPOP_FOUNDATION_SHARE));
         REV.safeTransfer(wallets[2], MARKETING_SHARE);
-        REV.safeTransfer(wallets[3], RESERVE_SHARE);
+        REV.safeTransfer(wallets[3], TEAM_MEMBER_1_SHARE);
+        REV.safeTransfer(wallets[4], TEAM_MEMBER_2_SHARE);
+        REV.safeTransfer(wallets[5], TEAM_MEMBER_3_SHARE);
+        REV.safeTransfer(wallets[6], TEAM_MEMBER_4_SHARE);
+        REV.safeTransfer(wallets[7], TEAM_MEMBER_5_SHARE);
 
         periodicAllocation.addShare(wallets[0], 50, REVPOP_FOUNDATION_PERIODS, REVPOP_FOUNDATION_PERIOD_LENGTH);
         periodicAllocation.addShare(wallets[1], 50, REVPOP_COMPANY_PERIODS, REVPOP_COMPANY_PERIOD_LENGTH);
         periodicAllocation.setUnlockStart(time());
 
         // We pause all transfers and minting.
-        // We allow to use transfer() function ONLY for periodicAllocation contract, 
+        // We allow to use transfer() function ONLY for periodicAllocation contract,
         // because it is an escrow and it should allow to transfer tokens to a certain party.
         pauseTokenTransfer();
 
@@ -199,7 +223,14 @@ contract REVSale is Ownable {
     }
 
     function totalReservedTokens() internal pure returns (uint) {
-        return MARKETING_SHARE.add(RESERVE_SHARE).add(REVPOP_COMPANY_SHARE).add(REVPOP_FOUNDATION_SHARE);
+        return MARKETING_SHARE
+            .add(TEAM_MEMBER_1_SHARE)
+            .add(TEAM_MEMBER_2_SHARE)
+            .add(TEAM_MEMBER_3_SHARE)
+            .add(TEAM_MEMBER_4_SHARE)
+            .add(TEAM_MEMBER_5_SHARE)
+            .add(REVPOP_COMPANY_SHARE)
+            .add(REVPOP_FOUNDATION_SHARE);
     }
 
     function begin() public onlyOwner {
@@ -343,7 +374,7 @@ contract REVSale is Ownable {
         collectedUnsoldTokensBeforeWindow = window;
 
         if (unsoldTokens > 0) {
-            REV.safeTransfer(wallets[4], unsoldTokens);
+            REV.safeTransfer(wallets[8], unsoldTokens);
         }
 
         emit LogCollectUnsold(unsoldTokens);

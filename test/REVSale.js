@@ -1,6 +1,5 @@
 import BigNumber from 'bignumber.js';
 import expectThrow from './helpers/expectThrow';
-import assertBNEqual from './helpers/assertBNEqual';
 
 const REVSale = artifacts.require('REVSale');
 const TestREVSale = artifacts.require('TestREVSale');
@@ -8,15 +7,23 @@ const Creator = artifacts.require('Creator');
 const REVToken = artifacts.require('REVToken');
 const PeriodicAllocation = artifacts.require('PeriodicAllocation');
 
-const UNSOLD_TOKENS_ACCOUNT = '0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E';
-const MARKETING_ACCOUNT = '0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e';
-const RESERVE_ACCOUNT = '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0';
-const REVPOP_FOUNDATION_ACCOUNT = '0xf0f5409ea22B14a20b12b330BD52a91597efBe8F';
-const REVPOP_COMPANY_ACCOUNT = '0xb7D4Ac7FCe988DA56fEf5373A6596a0144aF9924';
+const UNSOLD_TOKENS_ACCOUNT = '0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e';
+const MARKETING_ACCOUNT = '0x73d3F88BF15EB48e94E6583968041cC850d61D62';
+const TEAM_MEMBER_1_ACCOUNT = '0x1F3eFCe792f9744d919eee34d23e054631351eBc';
+const TEAM_MEMBER_2_ACCOUNT = '0xEB7bb38D821219aE20d3Df7A80A161563CDe5f1b';
+const TEAM_MEMBER_3_ACCOUNT = '0x9F3868cF5FEdb90Df9D9974A131dE6B56B3aA7Ca';
+const TEAM_MEMBER_4_ACCOUNT = '0xE7320724CA4C20aEb193472D3082593f6c58A3C5';
+const TEAM_MEMBER_5_ACCOUNT = '0xCde8311aa7AAbECDEf84179D93a04005C8C549c0';
+const REVPOP_FOUNDATION_ACCOUNT = '0x26be1e82026BB50742bBF765c8b1665bCB763c4c';
+const REVPOP_COMPANY_ACCOUNT = '0x4A2d3b4475dA7E634154F1868e689705bDCEEF4c';
 
 const TOTAL_SUPPLY            = '2000000000000000000000000000'; // 2bn * 10^18
-const MARKETING_SHARE         = '250000000000000000000000000'; // 250m * 10^18
-const RESERVE_SHARE           = '200000000000000000000000000'; // 200m * 10^18
+const MARKETING_SHARE         = '200000000000000000000000000'; // 200m * 10^18
+const TEAM_MEMBER_1_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
+const TEAM_MEMBER_2_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
+const TEAM_MEMBER_3_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
+const TEAM_MEMBER_4_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
+const TEAM_MEMBER_5_SHARE     = '20000000000000000000000000'; // 20m * 10^18 (1% from 200m)
 const REVPOP_FOUNDATION_SHARE = '200000000000000000000000000'; // 200m * 10^18
 const REVPOP_COMPANY_SHARE    = '200000000000000000000000000'; // 200m * 10^18
 
@@ -24,7 +31,7 @@ const DEFAULT_TOKENS_IN_FIRST_PERIOD = '49285714285714285714285714';
 const DEFAULT_TOKENS_IN_OTHER_PERIOD = '3057539682539682539682539';
 
 const FIRST_PERIOD_DURATION_IN_SEC = 432000; // 5 days
-const NUMBER_OF_OTHER_WINDOWS = 360;
+const NUMBER_OF_OTHER_WINDOWS = 297;
 const WINDOW_DURATION_IN_SEC = 82800; // 23 hours
 
 let initializeRevSale = async (revSale, accounts, customProps) => {
@@ -65,7 +72,7 @@ let getRevTokenFromRevSale = async (revSale) => {
 
 let getBalanceByRevSale = async (revSale, account) => {
     let revToken = await REVToken.at(await revSale.REV());
-    
+
     return revToken.balanceOf(account);
 };
 
@@ -130,7 +137,11 @@ contract('REVSale', accounts => {
                 .minus(new BigNumber(REVPOP_FOUNDATION_SHARE))
                 .minus(new BigNumber(REVPOP_COMPANY_SHARE))
                 .minus(new BigNumber(MARKETING_SHARE))
-                .minus(new BigNumber(RESERVE_SHARE))
+                .minus(new BigNumber(TEAM_MEMBER_1_SHARE))
+                .minus(new BigNumber(TEAM_MEMBER_2_SHARE))
+                .minus(new BigNumber(TEAM_MEMBER_3_SHARE))
+                .minus(new BigNumber(TEAM_MEMBER_4_SHARE))
+                .minus(new BigNumber(TEAM_MEMBER_5_SHARE))
                 .toString(10),
             (await getBalanceByRevSale(revSale, revSale.address)).toString(10)
         );
@@ -176,7 +187,11 @@ contract('REVSale', accounts => {
                 .minus(new BigNumber(REVPOP_FOUNDATION_SHARE))
                 .minus(new BigNumber(REVPOP_COMPANY_SHARE))
                 .minus(new BigNumber(MARKETING_SHARE))
-                .minus(new BigNumber(RESERVE_SHARE))
+                .minus(new BigNumber(TEAM_MEMBER_1_SHARE))
+                .minus(new BigNumber(TEAM_MEMBER_2_SHARE))
+                .minus(new BigNumber(TEAM_MEMBER_3_SHARE))
+                .minus(new BigNumber(TEAM_MEMBER_4_SHARE))
+                .minus(new BigNumber(TEAM_MEMBER_5_SHARE))
                 .toString(10),
             (await getBalanceByRevSale(revSale, revSale.address)).toString(10)
         );
@@ -215,7 +230,11 @@ contract('REVSale', accounts => {
 
         let token = await getRevTokenFromRevSale(revSale);
 
-        assert.equal(RESERVE_SHARE, await token.balanceOf(RESERVE_ACCOUNT));
+        assert.equal(TEAM_MEMBER_1_SHARE, await token.balanceOf(TEAM_MEMBER_1_ACCOUNT));
+        assert.equal(TEAM_MEMBER_2_SHARE, await token.balanceOf(TEAM_MEMBER_2_ACCOUNT));
+        assert.equal(TEAM_MEMBER_3_SHARE, await token.balanceOf(TEAM_MEMBER_3_ACCOUNT));
+        assert.equal(TEAM_MEMBER_4_SHARE, await token.balanceOf(TEAM_MEMBER_4_ACCOUNT));
+        assert.equal(TEAM_MEMBER_5_SHARE, await token.balanceOf(TEAM_MEMBER_5_ACCOUNT));
         assert.equal(MARKETING_SHARE, await token.balanceOf(MARKETING_ACCOUNT));
 
         assert.equal(true, await token.paused());
@@ -254,7 +273,11 @@ contract('REVSale', accounts => {
 
         let totalSupplyMinusReservedTokens = new BigNumber(TOTAL_SUPPLY)
             .minus(MARKETING_SHARE)
-            .minus(RESERVE_SHARE)
+            .minus(TEAM_MEMBER_1_SHARE)
+            .minus(TEAM_MEMBER_2_SHARE)
+            .minus(TEAM_MEMBER_3_SHARE)
+            .minus(TEAM_MEMBER_4_SHARE)
+            .minus(TEAM_MEMBER_5_SHARE)
             .minus(REVPOP_COMPANY_SHARE)
             .minus(REVPOP_FOUNDATION_SHARE);
 
@@ -273,7 +296,7 @@ contract('REVSale', accounts => {
         let token = await getRevTokenFromRevSale(revSale);
 
         assert.equal(
-            totalSupplyMinusReservedTokens.minus('100000000000000000000001').toString(10), 
+            totalSupplyMinusReservedTokens.minus('100000000000000000000001').toString(10),
             (await token.balanceOf(accounts[1])).toString(10)
         );
 
@@ -308,8 +331,12 @@ contract('REVSale', accounts => {
         assert.equal(REVPOP_FOUNDATION_ACCOUNT, await revSale.wallets(0));
         assert.equal(REVPOP_COMPANY_ACCOUNT, await revSale.wallets(1));
         assert.equal(MARKETING_ACCOUNT, await revSale.wallets(2));
-        assert.equal(RESERVE_ACCOUNT, await revSale.wallets(3));
-        assert.equal(UNSOLD_TOKENS_ACCOUNT, await revSale.wallets(4));
+        assert.equal(TEAM_MEMBER_1_ACCOUNT, await revSale.wallets(3));
+        assert.equal(TEAM_MEMBER_2_ACCOUNT, await revSale.wallets(4));
+        assert.equal(TEAM_MEMBER_3_ACCOUNT, await revSale.wallets(5));
+        assert.equal(TEAM_MEMBER_4_ACCOUNT, await revSale.wallets(6));
+        assert.equal(TEAM_MEMBER_5_ACCOUNT, await revSale.wallets(7));
+        assert.equal(UNSOLD_TOKENS_ACCOUNT, await revSale.wallets(8));
     });
 
     it("should perform assertions while initializing", async () => {
@@ -650,7 +677,7 @@ contract('REVSale', accounts => {
         await revSale.setCreatePerOtherPeriod('500', { from: accounts[0] });
         await revSale.collectUnsoldTokens(1, { from: accounts[0] });
 
-        assert.equal(currentBalance.plus('1000').toString(10), (await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10));
+        assert.equal((await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10), currentBalance.plus('1000').toString(10));
 
         await expectThrow(revSale.collectUnsoldTokens(1, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
 
@@ -666,7 +693,7 @@ contract('REVSale', accounts => {
         await revSale.buyWithLimit(4, 0, { from: accounts[1], value: '1000000000000000000' });
         await revSale.collectUnsoldTokens(4, { from: accounts[0] });
 
-        assert.equal(currentBalance.plus('1000').plus('500').plus('500').toString(10), (await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10));
+        assert.equal((await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10), currentBalance.plus('1000').plus('500').plus('500').toString(10));
 
         await expectThrow(revSale.collectUnsoldTokens(4, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
     });
