@@ -15,7 +15,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import './Ownable.sol';
 import './REVToken.sol';
@@ -114,7 +114,7 @@ contract REVSale is Ownable {
     event LogCollectUnsold (uint amount);
     event LogFreeze        ();
 
-    constructor(Creator creator) public {
+    constructor(Creator creator) {
         REV = creator.createToken();
 
         require(REV.owner() == address(this), "Invalid owner of the REVToken");

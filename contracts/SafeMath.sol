@@ -1,7 +1,7 @@
 // This contract was copied from https://github.com/OpenZeppelin/openzeppelin-contracts/
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow

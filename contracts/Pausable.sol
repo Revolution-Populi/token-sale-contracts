@@ -1,7 +1,7 @@
 // This contract was copied from https://github.com/OpenZeppelin/openzeppelin-contracts/
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import "./Context.sol";
 
@@ -14,7 +14,7 @@ import "./Context.sol";
  * the functions of your contract. Note that they will not be pausable by
  * simply including this module, only once the modifiers are put in place.
  */
-contract Pausable is Context {
+abstract contract Pausable is Context {
     /**
      * @dev Emitted when the pause is triggered by `account`.
      */
@@ -60,7 +60,7 @@ contract Pausable is Context {
      *
      * - The contract must be paused.
      */
-    modifier whenPaused() virtual {
+    modifier whenPaused() {
         require(_paused, "Pausable: not paused");
         _;
     }

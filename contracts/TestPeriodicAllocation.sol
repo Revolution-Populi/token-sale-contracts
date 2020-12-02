@@ -15,13 +15,13 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import './PeriodicAllocation.sol';
 import './REVToken.sol';
 
 contract TestPeriodicAllocation is PeriodicAllocation {
-    constructor(REVToken _token) public PeriodicAllocation(_token) { }
+    constructor(REVToken _token) PeriodicAllocation(_token) {}
 
     function setUnlockStart(uint256 _unlockStart) external override onlyOwner {
         unlockStart = _unlockStart;

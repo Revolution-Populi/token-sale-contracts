@@ -15,10 +15,8 @@
   },
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "truffle": "^5.1.13"
-  },
   "dependencies": {
+    "truffle": "5.1.55",
     "@truffle/hdwallet-provider": "^1.0.30",
     "babel": "^6.23.0",
     "babel-polyfill": "^6.26.0",

@@ -15,7 +15,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import './Ownable.sol';
 import './REVToken.sol';
@@ -38,13 +38,13 @@ contract PeriodicAllocation is Ownable {
 
     REVToken public token;
 
-    constructor(REVToken _token) public {
+    constructor(REVToken _token) {
         token = _token;
     }
 
     function setUnlockStart(uint256 _unlockStart) external virtual onlyOwner {
         require(unlockStart == 0, "unlockStart should be == 0");
-        require(_unlockStart >= now, "_unlockStart should be >= now");
+        require(_unlockStart >= block.timestamp, "_unlockStart should be >= block.timestamp");
 
         unlockStart = _unlockStart;
     }
@@ -58,12 +58,12 @@ contract PeriodicAllocation is Ownable {
     function unlockFor(address _beneficiary) public {
         require(unlockStart > 0, "unlockStart should be > 0");
         require(
-            now >= (unlockStart.add(shares[_beneficiary].periodLength)),
+            block.timestamp >= (unlockStart.add(shares[_beneficiary].periodLength)),
             "block.timestamp should be >= (unlockStart.add(shares[_beneficiary].periodLength))"
         );
 
         uint256 share = shares[_beneficiary].proportion;
-        uint256 periodsSinceUnlockStart = (now.sub(unlockStart)).div(shares[_beneficiary].periodLength);
+        uint256 periodsSinceUnlockStart = ((block.timestamp).sub(unlockStart)).div(shares[_beneficiary].periodLength);
 
         if (periodsSinceUnlockStart < shares[_beneficiary].periods) {
             share = share.mul(periodsSinceUnlockStart).div(shares[_beneficiary].periods);

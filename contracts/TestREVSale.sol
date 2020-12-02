@@ -15,15 +15,13 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.0 <0.8.0;
 
 import './REVSale.sol';
 import './Creator.sol';
 
 contract TestREVSale is REVSale {
-    constructor (Creator creator) REVSale(creator) public {
-
-    }
+    constructor (Creator creator) REVSale(creator) {}
 
     function windowDuration() public override pure returns (uint) {
         return 10;
