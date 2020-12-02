@@ -21,17 +21,7 @@ import './ERC20.sol';
 import './PausableWithException.sol';
 
 contract REVToken is ERC20, PausableWithException {
-    bytes32  public  symbol;
-    bytes32  public  name = '';
-    uint256  public  decimals = 18;
-
-    constructor(bytes32 symbol_) public {
-        symbol = symbol_;
-    }
-
-    function setName(bytes32 name_) public onlyOwner {
-        name = name_;
-    }
+    constructor(string memory name, string memory symbol) public ERC20(name, symbol) {}
 
     function pause() public onlyOwner {
         super._pause();

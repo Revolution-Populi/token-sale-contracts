@@ -23,7 +23,7 @@ contract('PeriodicAllocation', function (accounts) {
         const sharePart1 = (step) => Math.floor(TOTAL * Math.floor(SHARE_1 / 2 * step) / (SHARE_1 + SHARE_2));
         const sharePart2 = (step) => Math.floor(TOTAL * Math.floor(SHARE_2 / 3 * step) / (SHARE_1 + SHARE_2));
 
-        const token = await REVToken.new(web3.utils.fromAscii('REV'));
+        const token = await REVToken.new(web3.utils.fromAscii('RevolutionPopuli Token'), web3.utils.fromAscii('REV'));
         await token.mint(accounts[0], 10000000000000);
 
         const allocation = await PeriodicAllocation.new(token.address, { from: accounts[0] });

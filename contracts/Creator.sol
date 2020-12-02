@@ -21,7 +21,7 @@ import './REVToken.sol';
 import './PeriodicAllocation.sol';
 
 contract Creator {
-    REVToken public token = new REVToken('REV');
+    REVToken public token = new REVToken('RevolutionPopuli Token', 'REV');
     PeriodicAllocation public periodicAllocation;
 
     function createToken() external returns (REVToken) {

@@ -18,7 +18,7 @@ const REVPOP_FOUNDATION_ACCOUNT = '0x26be1e82026BB50742bBF765c8b1665bCB763c4c';
 const REVPOP_COMPANY_ACCOUNT = '0x4A2d3b4475dA7E634154F1868e689705bDCEEF4c';
 
 const TOTAL_SUPPLY            = '2000000000000000000000000000'; // 2bn * 10^18
-const MARKETING_SHARE         = '200000000000000000000000000'; // 200m * 10^18
+const MARKETING_SHARE         = '250000000000000000000000000'; // 200m * 10^18
 const TEAM_MEMBER_1_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
 const TEAM_MEMBER_2_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
 const TEAM_MEMBER_3_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
@@ -26,12 +26,14 @@ const TEAM_MEMBER_4_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.
 const TEAM_MEMBER_5_SHARE     = '20000000000000000000000000'; // 20m * 10^18 (1% from 200m)
 const REVPOP_FOUNDATION_SHARE = '200000000000000000000000000'; // 200m * 10^18
 const REVPOP_COMPANY_SHARE    = '200000000000000000000000000'; // 200m * 10^18
+const TOTAL_SHARES = '850000000000000000000000000';
+const TOTAL_SHARES_PLUS_ONE = '850000000000000000000000001';
 
 const DEFAULT_TOKENS_IN_FIRST_PERIOD = '49285714285714285714285714';
 const DEFAULT_TOKENS_IN_OTHER_PERIOD = '3057539682539682539682539';
 
 const FIRST_PERIOD_DURATION_IN_SEC = 432000; // 5 days
-const NUMBER_OF_OTHER_WINDOWS = 297;
+const NUMBER_OF_OTHER_WINDOWS = 360;
 const WINDOW_DURATION_IN_SEC = 82800; // 23 hours
 
 let initializeRevSale = async (revSale, accounts, customProps) => {
@@ -343,12 +345,12 @@ contract('REVSale', accounts => {
         let revSale = await createRevSale();
 
         await expectThrow(initializeRevSale(revSale, accounts, { totalSupply: 0 }), '_totalSupply should be > 0');
-        await expectThrow(initializeRevSale(revSale, accounts, { totalSupply: '850000000000000000000000000' }), '_totalSupply should be more than totalReservedTokens()');
+        await expectThrow(initializeRevSale(revSale, accounts, { totalSupply: TOTAL_SHARES }), '_totalSupply should be more than totalReservedTokens()');
         await expectThrow(initializeRevSale(revSale, accounts, { startTime: 10, otherStartTime: 9 }), '_firstWindowStartTime should be < _otherWindowsStartTime');
         await expectThrow(initializeRevSale(revSale, accounts, { numberOfOtherWindows: 0 }), '_numberOfOtherWindows should be > 0');
 
         // Check that at totalSupply bigger than all shares for at least on 1 token is OK
-        await initializeRevSale(revSale, accounts, { totalSupply: '850000000000000000000000001' });
+        await initializeRevSale(revSale, accounts, { totalSupply: TOTAL_SHARES_PLUS_ONE });
     });
 
     it("should return correct token amount while calling createOnWindow()", async () => {
@@ -603,13 +605,13 @@ contract('REVSale', accounts => {
         assert.equal('1000000000000000000', (await revSale.dailyTotals(1)).toString(10));
 
         /////////////////////////////////////////////////////
-        // Window 360
+        // Last window
         /////////////////////////////////////////////////////
-        await revSale.buyWithLimit(360, 0, { from: accounts[1], value: '1000000000000000000' });
+        await revSale.buyWithLimit(NUMBER_OF_OTHER_WINDOWS, 0, { from: accounts[1], value: '1000000000000000000' });
 
         assert.equal('5000000000000000000', (await revSale.totalRaisedETH()).toString(10));
-        assert.equal('1000000000000000000', (await revSale.userBuys(360, accounts[1])).toString(10));
-        assert.equal('1000000000000000000', (await revSale.dailyTotals(360)).toString(10));
+        assert.equal('1000000000000000000', (await revSale.userBuys(NUMBER_OF_OTHER_WINDOWS, accounts[1])).toString(10));
+        assert.equal('1000000000000000000', (await revSale.dailyTotals(NUMBER_OF_OTHER_WINDOWS)).toString(10));
     });
 
     it("should be able to collect ETH by owner of the REVSale", async () => {

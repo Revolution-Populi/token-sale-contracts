@@ -31,7 +31,7 @@ contract REVSale is Ownable {
     uint constant public FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
     uint constant public WINDOW_DURATION = 23 hours; // !!! for real ICO change to 23 hours
 
-    uint constant public MARKETING_SHARE = 200000000 ether;
+    uint constant public MARKETING_SHARE = 250000000 ether;
     uint constant public TEAM_MEMBER_1_SHARE = 45000000 ether;
     uint constant public TEAM_MEMBER_2_SHARE = 45000000 ether;
     uint constant public TEAM_MEMBER_3_SHARE = 45000000 ether;

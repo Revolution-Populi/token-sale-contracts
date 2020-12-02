@@ -16,5 +16,5 @@ export default async (promise, msg) => {
         );
         return;
     }
-    assert.fail('Expected throw not received');
+    assert.fail('Expected throw not received: ' + msg);
 };

@@ -48,7 +48,7 @@ contract Pausable is Context {
      *
      * - The contract must not be paused.
      */
-    modifier whenNotPaused() {
+    modifier whenNotPaused() virtual {
         require(!_paused, "Pausable: paused");
         _;
     }
@@ -60,7 +60,7 @@ contract Pausable is Context {
      *
      * - The contract must be paused.
      */
-    modifier whenPaused() {
+    modifier whenPaused() virtual {
         require(_paused, "Pausable: not paused");
         _;
     }
