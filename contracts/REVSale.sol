@@ -319,9 +319,9 @@ contract REVSale is Ownable {
             return;
         }
 
-        uint256 hundredPercent = 100.mul(10 ** REV.decimals());
-        uint256 userEthShare = userBuys[window][msg.sender].mul(hundredPercent).div(dailyTotals[window]);
-        uint256 reward = (createOnWindow(window)).mul(userEthShare).div(hundredPercent);
+        // 100 ether below is 100% * 10^18
+        uint256 userEthShare = userBuys[window][msg.sender].mul(100 ether).div(dailyTotals[window]);
+        uint256 reward = (createOnWindow(window)).mul(userEthShare).div(100 ether);
 
         totalBoughtTokens += reward;
         claimed[window][msg.sender] = true;
