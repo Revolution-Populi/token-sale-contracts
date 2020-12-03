@@ -319,15 +319,12 @@ contract REVSale is Ownable {
             return;
         }
 
-        uint256 dailyTotal = dailyTotals[window];
-        uint256 userTotal = userBuys[window][msg.sender];
-        uint256 price = createOnWindow(window).div(dailyTotal);
-        uint256 reward = price.mul(userTotal);
+        uint256 hundredPercent = 100.mul(10 ** REV.decimals());
+        uint256 userEthShare = userBuys[window][msg.sender].mul(hundredPercent).div(dailyTotals[window]);
+        uint256 reward = (createOnWindow(window)).mul(userEthShare).div(hundredPercent);
 
         totalBoughtTokens += reward;
-
         claimed[window][msg.sender] = true;
-
         REV.safeTransfer(msg.sender, reward);
 
         emit LogClaim(window, msg.sender, reward);
