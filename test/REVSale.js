@@ -28,6 +28,7 @@ const REVPOP_FOUNDATION_SHARE = '200000000000000000000000000'; // 200m * 10^18
 const REVPOP_COMPANY_SHARE    = '200000000000000000000000000'; // 200m * 10^18
 const TOTAL_SHARES = '800000000000000000000000000';
 const TOTAL_SHARES_PLUS_ONE = '800000000000000000000000001';
+const SELLABLE_TOKEN_AMOUNT = '1200000000000000000000000000'; // TOTAL_SUPPLY - TOTAL_SHARES
 
 const DEFAULT_TOKENS_IN_FIRST_PERIOD = '12000000000000000000000000';
 const DEFAULT_TOKENS_IN_OTHER_PERIOD = '4000000000000000000000000';
@@ -153,18 +154,6 @@ contract('REVSale', accounts => {
         );
     });
 
-    it("should allow to call setTokensPerPeriods only before shares are distributed", async () => {
-        let revSale = await createRevSale();
-
-        await initializeRevSale(revSale, accounts);
-        await revSale.distributeShares({ from: accounts[0] });
-
-        await expectThrow(
-            setTokensPerPeriod(revSale, accounts),
-            "distributedShares should be == false"
-        );
-    });
-
     it("should allow to call setTokensPerPeriods only by the owner of revSale", async () => {
         let revSale = await createRevSale();
 
@@ -263,11 +252,11 @@ contract('REVSale', accounts => {
         await expectThrow(initializeRevSale(revSale, accounts), "initialized should be == false");
     });
 
-    it("should allow to call setBulkPurchasers only after initialized", async () => {
+    it("should allow to call addBulkPurchasers only after initialized", async () => {
         let revSale = await createRevSale();
 
         await expectThrow(
-            revSale.setBulkPurchasers(
+            revSale.addBulkPurchasers(
                 [accounts[1], accounts[2]],
                 ['100000000000000000000000', '100000000000000000000000'],
                 { from: accounts[0] }
@@ -298,13 +287,13 @@ contract('REVSale', accounts => {
         );
     });
 
-    it("should allow to call setBulkPurchasers only before setting tokens per periods", async () => {
+    it("should allow to call addBulkPurchasers only before setting tokens per periods", async () => {
         let revSale = await createRevSale();
         await initializeRevSale(revSale, accounts);
         await setTokensPerPeriod(revSale, accounts);
 
         await expectThrow(
-            revSale.setBulkPurchasers(
+            revSale.addBulkPurchasers(
                 [accounts[1], accounts[2]],
                 ['100000000000000000000000', '100000000000000000000000'],
                 { from: accounts[0] }
@@ -313,54 +302,44 @@ contract('REVSale', accounts => {
         );
     });
 
-    it("should transfer tokens to bulk purchasers when setBulkPurchasers is called", async () => {
+    it("should transfer tokens to bulk purchasers when addBulkPurchasers is called", async () => {
         let revSale = await createRevSale();
 
         await initializeRevSale(revSale, accounts);
 
-        await expectThrow(revSale.setBulkPurchasers(
+        await expectThrow(revSale.addBulkPurchasers(
             [accounts[1]],
             [0],
             { from: accounts[0] }
         ), "_tokens[i] should be > 0");
 
-        let totalSupplyMinusReservedTokens = new BigNumber(TOTAL_SUPPLY)
-            .minus(MARKETING_SHARE)
-            .minus(TEAM_MEMBER_1_SHARE)
-            .minus(TEAM_MEMBER_2_SHARE)
-            .minus(TEAM_MEMBER_3_SHARE)
-            .minus(TEAM_MEMBER_4_SHARE)
-            .minus(TEAM_MEMBER_5_SHARE)
-            .minus(REVPOP_COMPANY_SHARE)
-            .minus(REVPOP_FOUNDATION_SHARE);
+        const sellableTokenAmount = new BigNumber(SELLABLE_TOKEN_AMOUNT);
+        const totalTokenAmount = new BigNumber(TOTAL_SUPPLY);
 
-        await expectThrow(revSale.setBulkPurchasers(
-            [accounts[1]],
-            [totalSupplyMinusReservedTokens.plus(1)],
-            { from: accounts[0] }
-        ), "REV.balanceOf(address(this)).sub(totalReservedTokens()) should be > needTokens");
-
-        await revSale.setBulkPurchasers(
+        // Try to add bulk purchase which is bigger on 1 than sellable token amount
+        await expectThrow(revSale.addBulkPurchasers(
             [accounts[1], accounts[2]],
-            [totalSupplyMinusReservedTokens.minus('100000000000000000000001'), '100000000000000000000000'],
+            [sellableTokenAmount.toString(10), '1'],
+            { from: accounts[0] }),
+            "REV.balanceOf(address(this)).sub(totalReservedTokens()) should be > needTokens"
+        );
+
+        await revSale.addBulkPurchasers(
+            [accounts[1], accounts[2]],
+            ['100000000000000000000001', '100000000000000000000000'],
             { from: accounts[0] }
         );
 
-        let totalBulkPurchaseAmount = new BigNumber('100000000000000000000001').plus(new BigNumber('100000000000000000000000'));
+        assert.equal(
+            (await getBalanceByRevSale(revSale, revSale.address)).toString(10),
+            totalTokenAmount.minus('100000000000000000000001').minus('100000000000000000000000').toString(10),
+            'Expecting -' + sellableTokenAmount.minus('100000000000000000000001').minus('100000000000000000000000').toString(10)
+        );
 
         let token = await getRevTokenFromRevSale(revSale);
 
-        assert.equal(
-            totalSupplyMinusReservedTokens.minus('100000000000000000000001').toString(10),
-            (await token.balanceOf(accounts[1])).toString(10)
-        );
-
+        assert.equal('100000000000000000000001', (await token.balanceOf(accounts[1])).toString(10));
         assert.equal('100000000000000000000000', (await token.balanceOf(accounts[2])).toString(10));
-
-        assert.equal(
-            totalSupplyMinusReservedTokens.minus(totalBulkPurchaseAmount),
-            (await getBalanceByRevSale(revSale, revSale.address)).toString(10)
-        );
     });
 
     it("begin should be called only after shares are distributed", async () => {
@@ -435,7 +414,7 @@ contract('REVSale', accounts => {
         await initializeRevSale(revSale, accounts, {
             startTime: startTime,
             otherStartTime: otherStartTime,
-            numberOfOtherWindows: 100
+            numberOfOtherWindows: 297
         });
 
         await setTokensPerPeriod(revSale, accounts);
@@ -750,7 +729,8 @@ contract('REVSale', accounts => {
         let token = await getRevTokenFromRevSale(revSale);
         let currentBalance = new BigNumber(await token.balanceOf(UNSOLD_TOKENS_ACCOUNT));
 
-        await setTokensPerPeriod(revSale, accounts, {firstPeriodTokens: '1000', otherPeriodTokens: '500'});
+        await revSale.setCreatePerFirstPeriod('1000', { from: accounts[0] });
+        await revSale.setCreatePerOtherPeriod('500', { from: accounts[0] });
         await revSale.collectUnsoldTokens(1, { from: accounts[0] });
 
         assert.equal((await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10), currentBalance.plus('1000').toString(10));
@@ -791,8 +771,8 @@ contract('REVSale', accounts => {
         await revSale.distributeShares({ from: accounts[0] });
         await revSale.begin({ from: accounts[0] });
 
-        assert.equal(DEFAULT_TOKENS_IN_FIRST_PERIOD, (await revSale.createPerFirstWindow()).toString(10));
-        assert.equal(DEFAULT_TOKENS_IN_OTHER_PERIOD, (await revSale.createPerOtherWindow()).toString(10));
+        assert.equal((await revSale.createPerFirstWindow()).toString(10), DEFAULT_TOKENS_IN_FIRST_PERIOD);
+        assert.equal((await revSale.createPerOtherWindow()).toString(10), DEFAULT_TOKENS_IN_OTHER_PERIOD);
 
         await revSale.buy({ from: accounts[1], value: '1000000000000000000' });
         await revSale.buy({ from: accounts[2], value: '2000000000000000000' });
@@ -814,9 +794,9 @@ contract('REVSale', accounts => {
         await revSale.claim(0, { from: accounts[1] });
         await revSale.claim(0, { from: accounts[2] });
 
-        let acc1BalanceNew = acc1Balance.plus('16428571000000000000000000');
-        let acc2BalanceNew = acc2Balance.plus('32857142000000000000000000');
-        let totalBoughtTokens = new BigNumber('49285713000000000000000000');
+        let acc1BalanceNew = acc1Balance.plus('3999999999999999999960000');
+        let acc2BalanceNew = acc2Balance.plus('7999999999999999999920000');
+        let totalBoughtTokens = new BigNumber('11999999999999999999880000');
 
         assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w0 acc1');
         assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w0 acc2');
@@ -849,9 +829,9 @@ contract('REVSale', accounts => {
         await revSale.claim(1, { from: accounts[1] });
         await revSale.claim(1, { from: accounts[2] });
 
-        acc1BalanceNew = acc1BalanceNew.plus('1528769000000000000000000');
-        acc2BalanceNew = acc2BalanceNew.plus('1528769000000000000000000');
-        totalBoughtTokens = totalBoughtTokens.plus('3057538000000000000000000');
+        acc1BalanceNew = acc1BalanceNew.plus('2000000000000000000000000');
+        acc2BalanceNew = acc2BalanceNew.plus('2000000000000000000000000');
+        totalBoughtTokens = totalBoughtTokens.plus('4000000000000000000000000');
 
         assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w1 acc1');
         assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w1 acc2');
@@ -873,8 +853,8 @@ contract('REVSale', accounts => {
 
         await revSale.claim(2, { from: accounts[1] });
 
-        acc1BalanceNew = acc1BalanceNew.plus('3057539000000000000000000');
-        totalBoughtTokens = totalBoughtTokens.plus('3057539000000000000000000');
+        acc1BalanceNew = acc1BalanceNew.plus('4000000000000000000000000');
+        totalBoughtTokens = totalBoughtTokens.plus('4000000000000000000000000');
 
         assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w2 acc1');
         assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w2 acc2');

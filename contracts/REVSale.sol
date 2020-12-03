@@ -150,7 +150,7 @@ contract REVSale is Ownable {
         REV.mint(address(this), totalSupply);
     }
 
-    function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public onlyOwner {
+    function addBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public onlyOwner {
         require(initialized == true, "initialized should be == true");
         require(tokensPerPeriodAreSet == false, "tokensPerPeriodAreSet should be == false");
 
@@ -180,7 +180,6 @@ contract REVSale is Ownable {
 
     function setTokensPerPeriods(uint _firstPeriodTokens, uint _otherPeriodTokens) public onlyOwner {
         require(initialized == true, "initialized should be == true");
-        require(distributedShares == false, "distributedShares should be == false");
 
         tokensPerPeriodAreSet = true;
 

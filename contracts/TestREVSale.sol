@@ -26,4 +26,12 @@ contract TestREVSale is REVSale {
     function windowDuration() public override pure returns (uint) {
         return 10;
     }
+
+    function setCreatePerFirstPeriod(uint _createPerFirstWindow) public onlyOwner {
+        createPerFirstWindow = _createPerFirstWindow;
+    }
+
+    function setCreatePerOtherPeriod(uint _createPerOtherWindow) public onlyOwner {
+        createPerOtherWindow = _createPerOtherWindow;
+    }
 }
