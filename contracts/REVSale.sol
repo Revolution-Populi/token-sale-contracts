@@ -31,7 +31,7 @@ contract REVSale is Ownable {
     uint constant public FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
     uint constant public WINDOW_DURATION = 23 hours; // !!! for real ICO change to 23 hours
 
-    uint constant public MARKETING_SHARE = 250000000 ether;
+    uint constant public MARKETING_SHARE = 200000000 ether;
     uint constant public TEAM_MEMBER_1_SHARE = 45000000 ether;
     uint constant public TEAM_MEMBER_2_SHARE = 45000000 ether;
     uint constant public TEAM_MEMBER_3_SHARE = 45000000 ether;
@@ -92,21 +92,13 @@ contract REVSale is Ownable {
     uint public collectedUnsoldTokensBeforeWindow = 0;
 
     bool public initialized = false;
+    bool public tokensPerPeriodAreSet = false;
     bool public distributedShares = false;
     bool public began = false;
 
     mapping(uint => uint) public dailyTotals;
     mapping(uint => mapping(address => uint)) public userBuys;
     mapping(uint => mapping(address => bool)) public claimed;
-
-    event LogInit (
-        uint tokensToSell,
-        uint firstWindowDuration,
-        uint otherWindowDuration,
-        uint totalWindowDuration,
-        uint createPerFirstWindow,
-        uint createPerOtherWindow
-    );
 
     event LogBuy           (uint window, address user, uint amount);
     event LogClaim         (uint window, address user, uint amount);
@@ -160,7 +152,7 @@ contract REVSale is Ownable {
 
     function setBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public onlyOwner {
         require(initialized == true, "initialized should be == true");
-        require(distributedShares == false, "distributedShares should be == false");
+        require(tokensPerPeriodAreSet == false, "tokensPerPeriodAreSet should be == false");
 
         uint count = _purchasers.length;
 
@@ -186,29 +178,26 @@ contract REVSale is Ownable {
         }
     }
 
-    function distributeShares() public onlyOwner {
+    function setTokensPerPeriods(uint _firstPeriodTokens, uint _otherPeriodTokens) public onlyOwner {
         require(initialized == true, "initialized should be == true");
         require(distributedShares == false, "distributedShares should be == false");
 
-        uint tokensToSell = totalSupply
-            .sub(totalBulkPurchasedTokens)
-            .sub(MARKETING_SHARE)
-            .sub(TEAM_MEMBER_1_SHARE)
-            .sub(TEAM_MEMBER_2_SHARE)
-            .sub(TEAM_MEMBER_3_SHARE)
-            .sub(TEAM_MEMBER_4_SHARE)
-            .sub(TEAM_MEMBER_5_SHARE)
-            .sub(REVPOP_COMPANY_SHARE)
-            .sub(REVPOP_FOUNDATION_SHARE);
+        tokensPerPeriodAreSet = true;
 
-        uint firstWindowDuration = otherWindowsStartTime.sub(firstWindowStartTime);
-        uint otherWindowDuration = numberOfOtherWindows.mul(windowDuration());
-        uint totalWindowDuration = otherWindowDuration.add(firstWindowDuration);
+        uint totalTokens = _firstPeriodTokens.add(_otherPeriodTokens.mul(numberOfOtherWindows));
 
-        // For the window 0 we sell 3x tokens more than in other windows.
-        // Window 0 also lasts 5 days (while other windows last 23 hours).
-        createPerFirstWindow = tokensToSell.mul(FIRST_WINDOW_MULTIPLIER).mul(firstWindowDuration).div(totalWindowDuration);
-        createPerOtherWindow = tokensToSell.sub(createPerFirstWindow).mul(windowDuration()).div(otherWindowDuration);
+        require(
+            totalSupply.sub(totalReservedTokens()).sub(totalBulkPurchasedTokens) == totalTokens,
+            "totalSupply.sub(totalReservedTokens()).sub(totalBulkPurchasedTokens) should be == totalTokens"
+        );
+
+        createPerFirstWindow = _firstPeriodTokens;
+        createPerOtherWindow = _otherPeriodTokens;
+    }
+
+    function distributeShares() public onlyOwner {
+        require(tokensPerPeriodAreSet == true, "tokensPerPeriodAreSet should be == true");
+        require(distributedShares == false, "distributedShares should be == false");
 
         distributedShares = true;
 
@@ -228,15 +217,6 @@ contract REVSale is Ownable {
         // We allow to use transfer() function ONLY for periodicAllocation contract,
         // because it is an escrow and it should allow to transfer tokens to a certain party.
         pauseTokenTransfer();
-
-        emit LogInit(
-            tokensToSell,
-            firstWindowDuration,
-            otherWindowDuration,
-            totalWindowDuration,
-            createPerFirstWindow,
-            createPerOtherWindow
-        );
     }
 
     function totalReservedTokens() internal pure returns (uint) {
