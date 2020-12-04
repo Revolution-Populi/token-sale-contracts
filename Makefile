@@ -75,7 +75,7 @@ truffle: ## Executes truffle command
 
 flatten: ## Flattens smart contracts into single file
 	@echo 'Flattening all contracts to a single file...'
-	$(COMPOSE_CMD) exec truffle bash -c "cd /var/solidity-flattener && npm start /var/www/contracts/REVSale.sol "
+	$(COMPOSE_CMD) exec truffle bash -c "cd /var/solidity-flattener && npm start /var/www/contracts/TokenSale.sol "
 
 ##
 ##Help
