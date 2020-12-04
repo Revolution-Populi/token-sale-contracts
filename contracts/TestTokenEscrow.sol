@@ -17,21 +17,13 @@
 
 pragma solidity >=0.6.0 <0.8.0;
 
-import './REVSale.sol';
-import './Creator.sol';
+import './TokenEscrow.sol';
+import './Token.sol';
 
-contract TestREVSale is REVSale {
-    constructor (Creator creator) REVSale(creator) {}
+contract TestTokenEscrow is TokenEscrow {
+    constructor(Token _token) TokenEscrow(_token) {}
 
-    function windowDuration() public override pure returns (uint) {
-        return 10;
-    }
-
-    function setCreatePerFirstPeriod(uint _createPerFirstWindow) public onlyOwner {
-        createPerFirstWindow = _createPerFirstWindow;
-    }
-
-    function setCreatePerOtherPeriod(uint _createPerOtherWindow) public onlyOwner {
-        createPerOtherWindow = _createPerOtherWindow;
+    function setUnlockStart(uint256 _unlockStart) external override onlyOwner {
+        unlockStart = _unlockStart;
     }
 }

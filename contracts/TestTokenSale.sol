@@ -17,13 +17,21 @@
 
 pragma solidity >=0.6.0 <0.8.0;
 
-import './PeriodicAllocation.sol';
-import './REVToken.sol';
+import './TokenSale.sol';
+import './Creator.sol';
 
-contract TestPeriodicAllocation is PeriodicAllocation {
-    constructor(REVToken _token) PeriodicAllocation(_token) {}
+contract TestTokenSale is TokenSale {
+    constructor (Creator creator) TokenSale(creator) {}
 
-    function setUnlockStart(uint256 _unlockStart) external override onlyOwner {
-        unlockStart = _unlockStart;
+    function windowDuration() public override pure returns (uint) {
+        return 10;
+    }
+
+    function setCreatePerFirstPeriod(uint _createPerFirstWindow) public onlyOwner {
+        createPerFirstWindow = _createPerFirstWindow;
+    }
+
+    function setCreatePerOtherPeriod(uint _createPerOtherWindow) public onlyOwner {
+        createPerOtherWindow = _createPerOtherWindow;
     }
 }

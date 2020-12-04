@@ -18,10 +18,10 @@
 pragma solidity >=0.6.0 <0.8.0;
 
 import './Ownable.sol';
-import './REVToken.sol';
+import './Token.sol';
 import './SafeMath.sol';
 
-contract PeriodicAllocation is Ownable {
+contract TokenEscrow is Ownable {
     using SafeMath for uint256;
 
     struct Share {
@@ -36,9 +36,9 @@ contract PeriodicAllocation is Ownable {
     mapping(address => Share) public shares;
     mapping(address => uint256) public unlocked;
 
-    REVToken public token;
+    Token public token;
 
-    constructor(REVToken _token) {
+    constructor(Token _token) {
         token = _token;
     }
 

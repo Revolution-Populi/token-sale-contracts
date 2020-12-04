@@ -18,14 +18,14 @@
 pragma solidity >=0.6.0 <0.8.0;
 
 import './Ownable.sol';
-import './REVToken.sol';
+import './Token.sol';
 import './SafeERC20.sol';
 import './SafeMath.sol';
 import './Creator.sol';
 
-contract REVSale is Ownable {
+contract TokenSale is Ownable {
     using SafeMath for uint256;
-    using SafeERC20 for REVToken;
+    using SafeERC20 for Token;
 
     uint constant public MIN_ETH = 1 ether; // !!! for real ICO change to 1 ether
     uint constant public FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
@@ -73,10 +73,10 @@ contract REVSale is Ownable {
         0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e
     ];
 
-    REVToken public REV;                   // The REV token itself
-    PeriodicAllocation public periodicAllocation;
+    Token public token;                   // The Token token itself
+    TokenEscrow public tokenEscrow;
 
-    uint public totalSupply;           // Total REV amount created
+    uint public totalSupply;           // Total Token amount created
 
     uint public firstWindowStartTime;  // Time of window 1 opening
     uint public createPerFirstWindow;  // Tokens sold in window 1
@@ -107,19 +107,19 @@ contract REVSale is Ownable {
     event LogFreeze        ();
 
     constructor(Creator creator) {
-        REV = creator.createToken();
+        token = creator.createToken();
 
-        require(REV.owner() == address(this), "Invalid owner of the REVToken");
-        require(REV.totalSupply() == 0, "Total supply of REVToken should be 0");
+        require(token.owner() == address(this), "Invalid owner of the Token");
+        require(token.totalSupply() == 0, "Total supply of Token should be 0");
 
-        periodicAllocation = creator.createPeriodicAllocation();
+        tokenEscrow = creator.createTokenEscrow();
 
-        require(periodicAllocation.owner() == address(this), "Invalid owner of the PeriodicAllocation");
-        require(periodicAllocation.unlockStart() == 0, "PeriodAllocation.unlockStart should be 0");
+        require(tokenEscrow.owner() == address(this), "Invalid owner of the TokenEscrow");
+        require(tokenEscrow.unlockStart() == 0, "TokenEscrow.unlockStart should be 0");
 
-        REV.setPausableException(address(periodicAllocation), true);
-        REV.setPausableException(address(this), true);
-        REV.setPausableException(wallets[2], true);
+        token.setPausableException(address(tokenEscrow), true);
+        token.setPausableException(address(this), true);
+        token.setPausableException(wallets[2], true);
     }
 
     function renounceOwnership() public override onlyOwner {
@@ -147,7 +147,7 @@ contract REVSale is Ownable {
 
         initialized = true;
 
-        REV.mint(address(this), totalSupply);
+        token.mint(address(this), totalSupply);
     }
 
     function addBulkPurchasers(address[] memory _purchasers, uint[] memory _tokens) public onlyOwner {
@@ -168,12 +168,12 @@ contract REVSale is Ownable {
         }
 
         require(
-            REV.balanceOf(address(this)).sub(totalReservedTokens()) > needTokens,
-            "REV.balanceOf(address(this)).sub(totalReservedTokens()) should be > needTokens"
+            token.balanceOf(address(this)).sub(totalReservedTokens()) > needTokens,
+            "token.balanceOf(address(this)).sub(totalReservedTokens()) should be > needTokens"
         );
 
         for (uint i = 0; i < count; i++) {
-            REV.safeTransfer(_purchasers[i], _tokens[i]);
+            token.safeTransfer(_purchasers[i], _tokens[i]);
             totalBulkPurchasedTokens = totalBulkPurchasedTokens.add(_tokens[i]);
         }
     }
@@ -200,20 +200,20 @@ contract REVSale is Ownable {
 
         distributedShares = true;
 
-        REV.safeTransfer(address(periodicAllocation), REVPOP_COMPANY_SHARE.add(REVPOP_FOUNDATION_SHARE));
-        REV.safeTransfer(wallets[2], MARKETING_SHARE);
-        REV.safeTransfer(wallets[3], TEAM_MEMBER_1_SHARE);
-        REV.safeTransfer(wallets[4], TEAM_MEMBER_2_SHARE);
-        REV.safeTransfer(wallets[5], TEAM_MEMBER_3_SHARE);
-        REV.safeTransfer(wallets[6], TEAM_MEMBER_4_SHARE);
-        REV.safeTransfer(wallets[7], TEAM_MEMBER_5_SHARE);
+        token.safeTransfer(address(tokenEscrow), REVPOP_COMPANY_SHARE.add(REVPOP_FOUNDATION_SHARE));
+        token.safeTransfer(wallets[2], MARKETING_SHARE);
+        token.safeTransfer(wallets[3], TEAM_MEMBER_1_SHARE);
+        token.safeTransfer(wallets[4], TEAM_MEMBER_2_SHARE);
+        token.safeTransfer(wallets[5], TEAM_MEMBER_3_SHARE);
+        token.safeTransfer(wallets[6], TEAM_MEMBER_4_SHARE);
+        token.safeTransfer(wallets[7], TEAM_MEMBER_5_SHARE);
 
-        periodicAllocation.addShare(wallets[0], 50, REVPOP_FOUNDATION_PERIODS, REVPOP_FOUNDATION_PERIOD_LENGTH);
-        periodicAllocation.addShare(wallets[1], 50, REVPOP_COMPANY_PERIODS, REVPOP_COMPANY_PERIOD_LENGTH);
-        periodicAllocation.setUnlockStart(time());
+        tokenEscrow.addShare(wallets[0], 50, REVPOP_FOUNDATION_PERIODS, REVPOP_FOUNDATION_PERIOD_LENGTH);
+        tokenEscrow.addShare(wallets[1], 50, REVPOP_COMPANY_PERIODS, REVPOP_COMPANY_PERIOD_LENGTH);
+        tokenEscrow.setUnlockStart(time());
 
         // We pause all transfers and minting.
-        // We allow to use transfer() function ONLY for periodicAllocation contract,
+        // We allow to use transfer() function ONLY for tokenEscrow contract,
         // because it is an escrow and it should allow to transfer tokens to a certain party.
         pauseTokenTransfer();
     }
@@ -237,19 +237,19 @@ contract REVSale is Ownable {
     }
 
     function pauseTokenTransfer() public onlyOwner {
-        REV.pause();
+        token.pause();
     }
 
     function unpauseTokenTransfer() public onlyOwner {
-        REV.unpause();
+        token.unpause();
     }
 
     function burnTokens(address account, uint amount) public onlyOwner {
-        REV.burn(account, amount);
+        token.burn(account, amount);
     }
 
     function removePausableException(address _address) public onlyOwner {
-        REV.setPausableException(_address, false);
+        token.setPausableException(_address, false);
     }
 
     function time() internal view returns (uint) {
@@ -324,7 +324,7 @@ contract REVSale is Ownable {
 
         totalBoughtTokens += reward;
         claimed[window][msg.sender] = true;
-        REV.safeTransfer(msg.sender, reward);
+        token.safeTransfer(msg.sender, reward);
 
         emit LogClaim(window, msg.sender, reward);
     }
@@ -367,7 +367,7 @@ contract REVSale is Ownable {
         collectedUnsoldTokensBeforeWindow = window;
 
         if (unsoldTokens > 0) {
-            REV.safeTransfer(wallets[8], unsoldTokens);
+            token.safeTransfer(wallets[8], unsoldTokens);
         }
 
         emit LogCollectUnsold(unsoldTokens);

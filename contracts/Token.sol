@@ -20,7 +20,7 @@ pragma solidity >=0.6.0 <0.8.0;
 import './ERC20.sol';
 import './PausableWithException.sol';
 
-contract REVToken is ERC20, PausableWithException {
+contract Token is ERC20, PausableWithException {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
     function pause() public onlyOwner {

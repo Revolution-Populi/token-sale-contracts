@@ -17,23 +17,23 @@
 
 pragma solidity >=0.6.0 <0.8.0;
 
-import './REVToken.sol';
-import './PeriodicAllocation.sol';
+import './Token.sol';
+import './TokenEscrow.sol';
 
 contract Creator {
-    REVToken public token = new REVToken('RevolutionPopuli Token', 'REV');
-    PeriodicAllocation public periodicAllocation;
+    Token public token = new Token('RevolutionPopuli ERC20 Token', 'RVP');
+    TokenEscrow public tokenEscrow;
 
-    function createToken() external returns (REVToken) {
+    function createToken() external returns (Token) {
         token.transferOwnership(msg.sender);
 
         return token;
     }
 
-    function createPeriodicAllocation() external returns (PeriodicAllocation) {
-        periodicAllocation = new PeriodicAllocation(token);
-        periodicAllocation.transferOwnership(msg.sender);
+    function createTokenEscrow() external returns (TokenEscrow) {
+        tokenEscrow = new TokenEscrow(token);
+        tokenEscrow.transferOwnership(msg.sender);
 
-        return periodicAllocation;
+        return tokenEscrow;
     }
 }

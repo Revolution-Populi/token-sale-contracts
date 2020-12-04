@@ -17,15 +17,15 @@
 
 pragma solidity >=0.6.0 <0.8.0;
 
-import './TestPeriodicAllocation.sol';
+import './TestTokenEscrow.sol';
 import './Creator.sol';
-import './REVToken.sol';
+import './Token.sol';
 
 contract TestCreator is Creator {
-    function createPeriodicAllocation(REVToken _token) external returns (PeriodicAllocation) {
-        PeriodicAllocation allocation = new TestPeriodicAllocation(_token);
-        allocation.transferOwnership(msg.sender);
+    function createTokenEscrow(Token _token) external returns (TokenEscrow) {
+        TokenEscrow tokenEscrow = new TestTokenEscrow(_token);
+        tokenEscrow.transferOwnership(msg.sender);
 
-        return allocation;
+        return tokenEscrow;
     }
 }
