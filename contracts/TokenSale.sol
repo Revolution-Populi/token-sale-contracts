@@ -28,7 +28,6 @@ contract TokenSale is Ownable {
     using SafeERC20 for Token;
 
     uint constant public MIN_ETH = 1 ether; // !!! for real ICO change to 1 ether
-    uint constant public FIRST_WINDOW_MULTIPLIER = 3; // 3 times more tokens are sold during window 1
     uint constant public WINDOW_DURATION = 23 hours; // !!! for real ICO change to 23 hours
 
     uint constant public MARKETING_SHARE = 200000000 ether;
