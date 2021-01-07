@@ -316,7 +316,7 @@ contract TokenSale is Ownable {
         require(began == true, "began should be == true");
         require(today() > window, "today() should be > window");
 
-        if (claimed[window][msg.sender] || dailyTotals[window] == 0) {
+        if (claimed[window][msg.sender] || dailyTotals[window] == 0 || userBuys[window][msg.sender] == 0) {
             return;
         }
 
