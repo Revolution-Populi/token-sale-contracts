@@ -536,7 +536,7 @@ contract('TokenSale', accounts => {
         await expectThrow(token.mint(accounts[1], '1000'), 'Ownable: caller is not the owner');
     });
 
-    it("should be able to call collect() by the owner of tokenSale", async () => {
+    it("should not be able to call collect() while period 0", async () => {
         let tokenSale = await createTokenSale();
 
         await initializeTokenSale(tokenSale, accounts);
@@ -544,8 +544,8 @@ contract('TokenSale', accounts => {
         await tokenSale.distributeShares({ from: accounts[0] });
         await tokenSale.begin({ from: accounts[0] });
 
-        await expectThrow(tokenSale.collect({ from: accounts[0] }), 'today() should be > 0');
-        await expectThrow(tokenSale.collect({ from: accounts[1] }), 'Ownable: caller is not the owner');
+        // also try to call from accounts[1], which is not the owner (it's ok to call by non-owner account)
+        await expectThrow(tokenSale.collect({ from: accounts[1] }), 'today() should be > 0');
     });
 
     it("should be able to call collectUnsoldTokens() by the owner of tokenSale", async () => {
@@ -556,8 +556,8 @@ contract('TokenSale', accounts => {
         await tokenSale.distributeShares({ from: accounts[0] });
         await tokenSale.begin({ from: accounts[0] });
 
-        await expectThrow(tokenSale.collectUnsoldTokens(1, { from: accounts[0] }), 'today() should be > 0');
-        await expectThrow(tokenSale.collectUnsoldTokens(1, { from: accounts[1] }), 'Ownable: caller is not the owner');
+        // also try to call from accounts[1], which is not the owner (it's ok to call by non-owner account)
+        await expectThrow(tokenSale.collectUnsoldTokens(1, { from: accounts[1] }), 'today() should be > 0');
     });
 
     it("should perform assertions while buying tokens", async () => {
@@ -668,7 +668,7 @@ contract('TokenSale', accounts => {
         assert.equal('1000000000000000000', (await tokenSale.dailyTotals(NUMBER_OF_OTHER_WINDOWS)).toString(10));
     });
 
-    it("should be able to collect ETH by owner of the TokenSale", async () => {
+    it("should be able to collect ETH and transfer them to benificiary", async () => {
         let tokenSale = await createTokenSale();
 
         let startTime = parseInt(new Date().getTime() / 1000, 10);
@@ -701,7 +701,7 @@ contract('TokenSale', accounts => {
         let currentBalanceBenificiaryAccount = new BigNumber(await web3.eth.getBalance(BENIFICIARY_ACCOUNT));
 
         await expectThrow(tokenSale.renounceOwnership({ from: accounts[0], gasPrice: 0, gas: 0 }), 'address(this).balance should be == 0');
-        await tokenSale.collect({ from: accounts[0], gasPrice: 0, gas: 0 });
+        await tokenSale.collect({ from: accounts[1], gasPrice: 0, gas: 0 });
 
         assert.equal(currentBalanceBenificiaryAccount.plus('2000000000000000000').toString(10), new BigNumber(await web3.eth.getBalance(BENIFICIARY_ACCOUNT)).toString(10));
         assert.equal(currentBalanceDefaultAccount.toString(10), new BigNumber(await web3.eth.getBalance(accounts[0])).toString(10));
@@ -711,7 +711,7 @@ contract('TokenSale', accounts => {
         assert.equal('0x0000000000000000000000000000000000000000', await tokenSale.owner());
     });
 
-    it("should be able to collect unsold tokens by owner of the TokenSale", async () => {
+    it("should be able to collect unsold tokens and transfer them to UNSOLD_TOKENS_ACCOUNT", async () => {
         let tokenSale = await createTokenSale(true);
 
         let startTime = parseInt(new Date().getTime() / 1000, 10);
@@ -739,7 +739,7 @@ contract('TokenSale', accounts => {
 
         assert.equal((await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10), currentBalance.plus('1000').toString(10));
 
-        await expectThrow(tokenSale.collectUnsoldTokens(1, { from: accounts[0] }), 'window should be > collectedUnsoldTokensBeforeWindow');
+        await expectThrow(tokenSale.collectUnsoldTokens(1, { from: accounts[1] }), 'window should be > collectedUnsoldTokensBeforeWindow');
 
         // go to window 2
         await wait(10000); // 9 seconds left to new window
@@ -751,7 +751,7 @@ contract('TokenSale', accounts => {
         await wait(10000); // 9 seconds left to new window
 
         await tokenSale.buyWithLimit(4, 0, { from: accounts[1], value: '1000000000000000000' });
-        await tokenSale.collectUnsoldTokens(4, { from: accounts[0] });
+        await tokenSale.collectUnsoldTokens(4, { from: accounts[1] });
 
         assert.equal((await token.balanceOf(UNSOLD_TOKENS_ACCOUNT)).toString(10), currentBalance.plus('1000').plus('500').plus('500').toString(10));
 

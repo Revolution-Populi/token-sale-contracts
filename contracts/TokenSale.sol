@@ -339,21 +339,21 @@ contract TokenSale is Ownable {
         }
     }
 
-    // Crowdsale owners can collect ETH any number of times
-    function collect() public onlyOwner {
+    // Crowdsale owners can collect ETH  number of times
+    function collect() public {
         require(began == true, "began should be == true");
         require(today() > 0, "today() should be > 0");
         // Prevent recycling during window 0
 
+        uint balance = address(this).balance;
         payable(wallets[9]).transfer(address(this).balance);
 
-        emit LogCollect(address(this).balance);
+        emit LogCollect(balance);
     }
 
-    function collectUnsoldTokens(uint window) public onlyOwner {
+    function collectUnsoldTokens(uint window) public {
         require(began == true, "began should be == true");
         require(today() > 0, "today() should be > 0");
-        require(window > 0, "window should be > 0");
         require(window <= today(), "window should be <= today()");
         require(window > collectedUnsoldTokensBeforeWindow, "window should be > collectedUnsoldTokensBeforeWindow");
 
