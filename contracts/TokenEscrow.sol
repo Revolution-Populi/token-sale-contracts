@@ -20,9 +20,11 @@ pragma solidity >=0.6.0 <0.8.0;
 import './Ownable.sol';
 import './Token.sol';
 import './SafeMath.sol';
+import './SafeERC20.sol';
 
 contract TokenEscrow is Ownable {
     using SafeMath for uint256;
+    using SafeERC20 for Token;
 
     struct Share {
         uint256 proportion;
@@ -75,7 +77,7 @@ contract TokenEscrow is Ownable {
             totalShare = totalShare.sub(share);
             unlocked[_beneficiary] += share;
             uint256 unlockedToken = token.balanceOf(address(this)).mul(share).div(totalShare.add(share));
-            token.transfer(_beneficiary,unlockedToken);
+            token.safeTransfer(_beneficiary,unlockedToken);
         }
     }
 }
