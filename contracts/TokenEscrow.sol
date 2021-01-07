@@ -75,7 +75,7 @@ contract TokenEscrow is Ownable {
 
         if (share > 0) {
             totalShare = totalShare.sub(share);
-            unlocked[_beneficiary] += share;
+            unlocked[_beneficiary] = unlocked[_beneficiary].add(share);
             uint256 unlockedToken = token.balanceOf(address(this)).mul(share).div(totalShare.add(share));
             token.safeTransfer(_beneficiary,unlockedToken);
         }

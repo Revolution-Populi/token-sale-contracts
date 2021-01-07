@@ -293,9 +293,9 @@ contract TokenSale is Ownable {
             require(dailyTotals[window] <= limit, "dailyTotals[window] should be <= limit");
         }
 
-        userBuys[window][msg.sender] += msg.value;
-        dailyTotals[window] += msg.value;
-        totalRaisedETH += msg.value;
+        userBuys[window][msg.sender] = userBuys[window][msg.sender].add(msg.value);
+        dailyTotals[window] = dailyTotals[window].add(msg.value);
+        totalRaisedETH = totalRaisedETH.add(msg.value);
 
         emit LogBuy(window, msg.sender, msg.value);
     }
@@ -324,7 +324,7 @@ contract TokenSale is Ownable {
         uint256 userEthShare = userBuys[window][msg.sender].mul(100 ether).div(dailyTotals[window]);
         uint256 reward = (createOnWindow(window)).mul(userEthShare).div(100 ether);
 
-        totalBoughtTokens += reward;
+        totalBoughtTokens = totalBoughtTokens.add(reward);
         claimed[window][msg.sender] = true;
         token.safeTransfer(msg.sender, reward);
 
@@ -363,7 +363,7 @@ contract TokenSale is Ownable {
             uint dailyTotal = dailyTotals[i];
 
             if (dailyTotal == 0) {
-                unsoldTokens += i == 0 ? createPerFirstWindow : createPerOtherWindow;
+                unsoldTokens = unsoldTokens.add(i == 0 ? createPerFirstWindow : createPerOtherWindow);
             }
         }
 
