@@ -7,6 +7,7 @@ const Creator = artifacts.require('Creator');
 const Token = artifacts.require('Token');
 const TokenEscrow = artifacts.require('TokenEscrow');
 
+const BENIFICIARY_ACCOUNT = '0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e';
 const UNSOLD_TOKENS_ACCOUNT = '0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e';
 const MARKETING_ACCOUNT = '0x73d3F88BF15EB48e94E6583968041cC850d61D62';
 const TEAM_MEMBER_1_ACCOUNT = '0x1F3eFCe792f9744d919eee34d23e054631351eBc';
@@ -378,6 +379,7 @@ contract('TokenSale', accounts => {
         assert.equal(TEAM_MEMBER_4_ACCOUNT, await tokenSale.wallets(6));
         assert.equal(TEAM_MEMBER_5_ACCOUNT, await tokenSale.wallets(7));
         assert.equal(UNSOLD_TOKENS_ACCOUNT, await tokenSale.wallets(8));
+        assert.equal(BENIFICIARY_ACCOUNT, await tokenSale.wallets(8));
     });
 
     it("should perform assertions while initializing", async () => {
@@ -695,12 +697,14 @@ contract('TokenSale', accounts => {
 
         await wait(4000);
 
-        let currentBalance = new BigNumber(await web3.eth.getBalance(accounts[0]));
+        let currentBalanceDefaultAccount = new BigNumber(await web3.eth.getBalance(accounts[0]));
+        let currentBalanceBenificiaryAccount = new BigNumber(await web3.eth.getBalance(BENIFICIARY_ACCOUNT));
 
         await expectThrow(tokenSale.renounceOwnership({ from: accounts[0], gasPrice: 0, gas: 0 }), 'address(this).balance should be == 0');
         await tokenSale.collect({ from: accounts[0], gasPrice: 0, gas: 0 });
 
-        assert.equal(currentBalance.plus('2000000000000000000').toString(10), new BigNumber(await web3.eth.getBalance(accounts[0])).toString(10));
+        assert.equal(currentBalanceBenificiaryAccount.plus('2000000000000000000').toString(10), new BigNumber(await web3.eth.getBalance(BENIFICIARY_ACCOUNT)).toString(10));
+        assert.equal(currentBalanceDefaultAccount.toString(10), new BigNumber(await web3.eth.getBalance(accounts[0])).toString(10));
 
         await tokenSale.renounceOwnership();
 

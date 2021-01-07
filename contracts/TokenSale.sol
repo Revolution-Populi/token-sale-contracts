@@ -43,7 +43,7 @@ contract TokenSale is Ownable {
     uint constant public REVPOP_COMPANY_PERIOD_LENGTH = 365 days; // !!! for real ICO change to 365 days
     uint constant public REVPOP_COMPANY_PERIODS = 10; // 10 days (!!! for real ICO it would be 10 years)
 
-    address[9] public wallets = [
+    address[10] public wallets = [
         // RevPop.org foundation
         0x26be1e82026BB50742bBF765c8b1665bCB763c4c,
 
@@ -69,6 +69,9 @@ contract TokenSale is Ownable {
         0xCde8311aa7AAbECDEf84179D93a04005C8C549c0,
 
         // Unsold tokens taker
+        0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e,
+
+        // Beneficiarry
         0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e
     ];
 
@@ -341,7 +344,8 @@ contract TokenSale is Ownable {
         require(began == true, "began should be == true");
         require(today() > 0, "today() should be > 0");
         // Prevent recycling during window 0
-        msg.sender.transfer(address(this).balance);
+
+        payable(wallets[9]).transfer(address(this).balance);
 
         emit LogCollect(address(this).balance);
     }
