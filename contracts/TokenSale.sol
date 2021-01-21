@@ -72,7 +72,7 @@ contract TokenSale is Ownable {
         0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e,
 
         // Beneficiarry
-        0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e
+        0x655DbB26b207952a90eF6b0752AEa85ECeCcEFF4
     ];
 
     Token public token;                   // The Token token itself
