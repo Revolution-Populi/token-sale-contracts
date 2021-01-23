@@ -31,11 +31,10 @@ contract TokenSale is Ownable {
     uint constant public WINDOW_DURATION = 23 hours; // !!! for real ICO change to 23 hours
 
     uint constant public MARKETING_SHARE = 200000000 ether;
-    uint constant public TEAM_MEMBER_1_SHARE = 45000000 ether;
-    uint constant public TEAM_MEMBER_2_SHARE = 45000000 ether;
-    uint constant public TEAM_MEMBER_3_SHARE = 45000000 ether;
-    uint constant public TEAM_MEMBER_4_SHARE = 45000000 ether;
-    uint constant public TEAM_MEMBER_5_SHARE = 20000000 ether;
+    uint constant public TEAM_MEMBER_1_SHARE = 50000000 ether;
+    uint constant public TEAM_MEMBER_2_SHARE = 50000000 ether;
+    uint constant public TEAM_MEMBER_3_SHARE = 50000000 ether;
+    uint constant public TEAM_MEMBER_4_SHARE = 50000000 ether;
     uint constant public REVPOP_FOUNDATION_SHARE = 200000000 ether;
     uint constant public REVPOP_FOUNDATION_PERIOD_LENGTH = 365 days; // !!! for real ICO change to 365 days
     uint constant public REVPOP_FOUNDATION_PERIODS = 10; // 10 days (!!! for real ICO it would be 10 years)
@@ -43,7 +42,7 @@ contract TokenSale is Ownable {
     uint constant public REVPOP_COMPANY_PERIOD_LENGTH = 365 days; // !!! for real ICO change to 365 days
     uint constant public REVPOP_COMPANY_PERIODS = 10; // 10 days (!!! for real ICO it would be 10 years)
 
-    address[10] public wallets = [
+    address[9] public wallets = [
         // RevPop.org foundation
         0x26be1e82026BB50742bBF765c8b1665bCB763c4c,
 
@@ -64,9 +63,6 @@ contract TokenSale is Ownable {
 
         // Team member 4
         0xE7320724CA4C20aEb193472D3082593f6c58A3C5,
-
-        // Team member 5
-        0xCde8311aa7AAbECDEf84179D93a04005C8C549c0,
 
         // Unsold tokens taker
         0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e,
@@ -208,7 +204,6 @@ contract TokenSale is Ownable {
         token.safeTransfer(wallets[4], TEAM_MEMBER_2_SHARE);
         token.safeTransfer(wallets[5], TEAM_MEMBER_3_SHARE);
         token.safeTransfer(wallets[6], TEAM_MEMBER_4_SHARE);
-        token.safeTransfer(wallets[7], TEAM_MEMBER_5_SHARE);
 
         tokenEscrow.addShare(wallets[0], 50, REVPOP_FOUNDATION_PERIODS, REVPOP_FOUNDATION_PERIOD_LENGTH);
         tokenEscrow.addShare(wallets[1], 50, REVPOP_COMPANY_PERIODS, REVPOP_COMPANY_PERIOD_LENGTH);
@@ -226,7 +221,6 @@ contract TokenSale is Ownable {
             .add(TEAM_MEMBER_2_SHARE)
             .add(TEAM_MEMBER_3_SHARE)
             .add(TEAM_MEMBER_4_SHARE)
-            .add(TEAM_MEMBER_5_SHARE)
             .add(REVPOP_COMPANY_SHARE)
             .add(REVPOP_FOUNDATION_SHARE);
     }
@@ -346,7 +340,7 @@ contract TokenSale is Ownable {
         // Prevent recycling during window 0
 
         uint balance = address(this).balance;
-        payable(wallets[9]).transfer(address(this).balance);
+        payable(wallets[8]).transfer(address(this).balance);
 
         emit LogCollect(balance);
     }
@@ -370,7 +364,7 @@ contract TokenSale is Ownable {
         collectedUnsoldTokensBeforeWindow = window;
 
         if (unsoldTokens > 0) {
-            token.safeTransfer(wallets[8], unsoldTokens);
+            token.safeTransfer(wallets[7], unsoldTokens);
         }
 
         emit LogCollectUnsold(unsoldTokens);

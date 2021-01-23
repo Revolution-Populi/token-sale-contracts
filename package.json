@@ -16,16 +16,18 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "truffle": "5.1.55",
-    "@truffle/hdwallet-provider": "^1.0.30",
+    "@truffle/hdwallet-provider": "^1.2.1",
     "babel": "^6.23.0",
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.7.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-2": "^6.24.1",
     "babel-preset-stage-3": "^6.24.1",
-    "bignumber.js": "^9.0.0",
+    "bignumber.js": "^9.0.1",
     "dotenv": "^8.2.0",
-    "remixd": "^0.1.8-alpha.14"
+    "truffle": "5.1.63"
+  },
+  "devDependencies": {
+    "babel-register": "^6.26.0"
   }
 }

@@ -7,35 +7,33 @@ const Creator = artifacts.require('Creator');
 const Token = artifacts.require('Token');
 const TokenEscrow = artifacts.require('TokenEscrow');
 
-const BENIFICIARY_ACCOUNT = '0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e';
+const BENIFICIARY_ACCOUNT = '0x655DbB26b207952a90eF6b0752AEa85ECeCcEFF4';
 const UNSOLD_TOKENS_ACCOUNT = '0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e';
 const MARKETING_ACCOUNT = '0x73d3F88BF15EB48e94E6583968041cC850d61D62';
 const TEAM_MEMBER_1_ACCOUNT = '0x1F3eFCe792f9744d919eee34d23e054631351eBc';
 const TEAM_MEMBER_2_ACCOUNT = '0xEB7bb38D821219aE20d3Df7A80A161563CDe5f1b';
 const TEAM_MEMBER_3_ACCOUNT = '0x9F3868cF5FEdb90Df9D9974A131dE6B56B3aA7Ca';
 const TEAM_MEMBER_4_ACCOUNT = '0xE7320724CA4C20aEb193472D3082593f6c58A3C5';
-const TEAM_MEMBER_5_ACCOUNT = '0xCde8311aa7AAbECDEf84179D93a04005C8C549c0';
 const REVPOP_FOUNDATION_ACCOUNT = '0x26be1e82026BB50742bBF765c8b1665bCB763c4c';
 const REVPOP_COMPANY_ACCOUNT = '0x4A2d3b4475dA7E634154F1868e689705bDCEEF4c';
 
 const TOTAL_SUPPLY            = '2000000000000000000000000000'; // 2bn * 10^18
 const MARKETING_SHARE         = '200000000000000000000000000'; // 200m * 10^18
-const TEAM_MEMBER_1_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
-const TEAM_MEMBER_2_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
-const TEAM_MEMBER_3_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
-const TEAM_MEMBER_4_SHARE     = '45000000000000000000000000'; // 45m * 10^18 (2.25% from 200m)
-const TEAM_MEMBER_5_SHARE     = '20000000000000000000000000'; // 20m * 10^18 (1% from 200m)
+const TEAM_MEMBER_1_SHARE     = '50000000000000000000000000'; // 50m * 10^18 (2.50% from 200m)
+const TEAM_MEMBER_2_SHARE     = '50000000000000000000000000'; // 50m * 10^18 (2.50% from 200m)
+const TEAM_MEMBER_3_SHARE     = '50000000000000000000000000'; // 50m * 10^18 (2.50% from 200m)
+const TEAM_MEMBER_4_SHARE     = '50000000000000000000000000'; // 50m * 10^18 (2.50% from 200m)
 const REVPOP_FOUNDATION_SHARE = '200000000000000000000000000'; // 200m * 10^18
 const REVPOP_COMPANY_SHARE    = '200000000000000000000000000'; // 200m * 10^18
 const TOTAL_SHARES = '800000000000000000000000000';
 const TOTAL_SHARES_PLUS_ONE = '800000000000000000000000001';
 const SELLABLE_TOKEN_AMOUNT = '1200000000000000000000000000'; // TOTAL_SUPPLY - TOTAL_SHARES
 
-const DEFAULT_TOKENS_IN_FIRST_PERIOD = '12000000000000000000000000';
-const DEFAULT_TOKENS_IN_OTHER_PERIOD = '4000000000000000000000000';
+const DEFAULT_TOKENS_IN_FIRST_PERIOD = '15000000000000000000000000';
+const DEFAULT_TOKENS_IN_OTHER_PERIOD = '5000000000000000000000000';
 
 const FIRST_PERIOD_DURATION_IN_SEC = 432000; // 5 days
-const NUMBER_OF_OTHER_WINDOWS = 297;
+const NUMBER_OF_OTHER_WINDOWS = 237;
 const WINDOW_DURATION_IN_SEC = 82800; // 23 hours
 
 let initializeTokenSale = async (tokenSale, accounts, customProps, customTokensPerPeriodProps) => {
@@ -178,7 +176,6 @@ contract('TokenSale', accounts => {
                 .minus(new BigNumber(TEAM_MEMBER_2_SHARE))
                 .minus(new BigNumber(TEAM_MEMBER_3_SHARE))
                 .minus(new BigNumber(TEAM_MEMBER_4_SHARE))
-                .minus(new BigNumber(TEAM_MEMBER_5_SHARE))
                 .toString(10),
             (await getBalanceByTokenSale(tokenSale, tokenSale.address)).toString(10)
         );
@@ -240,7 +237,6 @@ contract('TokenSale', accounts => {
         assert.equal(TEAM_MEMBER_2_SHARE, await token.balanceOf(TEAM_MEMBER_2_ACCOUNT));
         assert.equal(TEAM_MEMBER_3_SHARE, await token.balanceOf(TEAM_MEMBER_3_ACCOUNT));
         assert.equal(TEAM_MEMBER_4_SHARE, await token.balanceOf(TEAM_MEMBER_4_ACCOUNT));
-        assert.equal(TEAM_MEMBER_5_SHARE, await token.balanceOf(TEAM_MEMBER_5_ACCOUNT));
         assert.equal(MARKETING_SHARE, await token.balanceOf(MARKETING_ACCOUNT));
 
         assert.equal(true, await token.paused());
@@ -377,8 +373,7 @@ contract('TokenSale', accounts => {
         assert.equal(TEAM_MEMBER_2_ACCOUNT, await tokenSale.wallets(4));
         assert.equal(TEAM_MEMBER_3_ACCOUNT, await tokenSale.wallets(5));
         assert.equal(TEAM_MEMBER_4_ACCOUNT, await tokenSale.wallets(6));
-        assert.equal(TEAM_MEMBER_5_ACCOUNT, await tokenSale.wallets(7));
-        assert.equal(UNSOLD_TOKENS_ACCOUNT, await tokenSale.wallets(8));
+        assert.equal(UNSOLD_TOKENS_ACCOUNT, await tokenSale.wallets(7));
         assert.equal(BENIFICIARY_ACCOUNT, await tokenSale.wallets(8));
     });
 
@@ -416,7 +411,7 @@ contract('TokenSale', accounts => {
         await initializeTokenSale(tokenSale, accounts, {
             startTime: startTime,
             otherStartTime: otherStartTime,
-            numberOfOtherWindows: 297
+            numberOfOtherWindows: 237
         });
 
         await setTokensPerPeriod(tokenSale, accounts);
@@ -798,9 +793,9 @@ contract('TokenSale', accounts => {
         await tokenSale.claim(0, { from: accounts[1] });
         await tokenSale.claim(0, { from: accounts[2] });
 
-        let acc1BalanceNew = acc1Balance.plus('3999999999999999999960000');
-        let acc2BalanceNew = acc2Balance.plus('7999999999999999999920000');
-        let totalBoughtTokens = new BigNumber('11999999999999999999880000');
+        let acc1BalanceNew = acc1Balance.plus('4999999999999999999950000');
+        let acc2BalanceNew = acc2Balance.plus('9999999999999999999900000');
+        let totalBoughtTokens = new BigNumber('14999999999999999999850000');
 
         assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w0 acc1');
         assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w0 acc2');
@@ -833,9 +828,9 @@ contract('TokenSale', accounts => {
         await tokenSale.claim(1, { from: accounts[1] });
         await tokenSale.claim(1, { from: accounts[2] });
 
-        acc1BalanceNew = acc1BalanceNew.plus('2000000000000000000000000');
-        acc2BalanceNew = acc2BalanceNew.plus('2000000000000000000000000');
-        totalBoughtTokens = totalBoughtTokens.plus('4000000000000000000000000');
+        acc1BalanceNew = acc1BalanceNew.plus('2500000000000000000000000');
+        acc2BalanceNew = acc2BalanceNew.plus('2500000000000000000000000');
+        totalBoughtTokens = totalBoughtTokens.plus('5000000000000000000000000');
 
         assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w1 acc1');
         assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w1 acc2');
@@ -857,8 +852,8 @@ contract('TokenSale', accounts => {
 
         await tokenSale.claim(2, { from: accounts[1] });
 
-        acc1BalanceNew = acc1BalanceNew.plus('4000000000000000000000000');
-        totalBoughtTokens = totalBoughtTokens.plus('4000000000000000000000000');
+        acc1BalanceNew = acc1BalanceNew.plus('5000000000000000000000000');
+        totalBoughtTokens = totalBoughtTokens.plus('5000000000000000000000000');
 
         assert.equal(new BigNumber(await token.balanceOf(accounts[1])).toString(10), acc1BalanceNew.toString(10), 'claim w2 acc1');
         assert.equal(new BigNumber(await token.balanceOf(accounts[2])).toString(10), acc2BalanceNew.toString(10), 'claim w2 acc2');
