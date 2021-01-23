@@ -460,6 +460,37 @@ contract('TokenSale', accounts => {
         await expectThrow(token.pause({ from: accounts[0] }), 'Ownable: caller is not the owner');
     });
 
+    it("should be able to call pauseTokenSale() by the owner of tokenSale", async () => {
+        let tokenSale = await createTokenSale();
+
+        await initializeTokenSale(tokenSale, accounts);
+        await setTokensPerPeriod(tokenSale, accounts);
+        await tokenSale.distributeShares({ from: accounts[0] });
+        await tokenSale.begin({ from: accounts[0] });
+
+        await tokenSale.pauseTokenSale({ from: accounts[0] });
+        await expectThrow(tokenSale.pauseTokenSale({ from: accounts[1] }), 'Ownable: caller is not the owner');
+
+        assert.equal(true, await tokenSale.tokenSalePaused());
+    });
+
+    it("should be able to call unpauseTokenSale() by the owner of tokenSale", async () => {
+        let tokenSale = await createTokenSale();
+
+        await initializeTokenSale(tokenSale, accounts);
+        await setTokensPerPeriod(tokenSale, accounts);
+        await tokenSale.distributeShares({ from: accounts[0] });
+        await tokenSale.begin({ from: accounts[0] });
+
+        await tokenSale.pauseTokenSale({ from: accounts[0] });
+        assert.equal(true, await tokenSale.tokenSalePaused());
+
+        await expectThrow(tokenSale.unpauseTokenSale({ from: accounts[1] }), 'Ownable: caller is not the owner');
+
+        await tokenSale.unpauseTokenSale({ from: accounts[0] });
+        assert.equal(false, await tokenSale.tokenSalePaused());
+    });
+
     it("should be able to call unpauseTokenTransfer() by the owner of tokenSale", async () => {
         let tokenSale = await createTokenSale();
 
@@ -575,6 +606,25 @@ contract('TokenSale', accounts => {
 
         await expectThrow(tokenSale.buy({ from: accounts[1], value: '999999999999999999' }), 'msg.value should be >= MIN_ETH');
         await expectThrow(tokenSale.buyWithLimit(999, 0, { from: accounts[1], value: '1000000000000000000' }), 'window should be <= numberOfOtherWindows');
+    });
+
+    it("should be impossible to buy tokens if the token sale is paused", async () => {
+        let tokenSale = await createTokenSale();
+
+        let startTime = parseInt((new Date().getTime() / 1000) - 1000, 10);
+        let otherStartTime = startTime + FIRST_PERIOD_DURATION_IN_SEC;
+
+        await initializeTokenSale(tokenSale, accounts, {
+            startTime: startTime,
+            otherStartTime: otherStartTime
+        });
+
+        await setTokensPerPeriod(tokenSale, accounts);
+        await tokenSale.distributeShares({ from: accounts[0] });
+        await tokenSale.begin({ from: accounts[0] });
+        await tokenSale.pauseTokenSale({ from: accounts[0] });
+
+        await expectThrow(tokenSale.buy({ from: accounts[1], value: '1000000000000000000' }), 'tokenSalePaused should be == false');
     });
 
     it("should be able to buy tokens by sending ETH to TokenSale contract", async () => {

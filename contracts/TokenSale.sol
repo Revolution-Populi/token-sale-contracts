@@ -93,6 +93,7 @@ contract TokenSale is Ownable {
     bool public tokensPerPeriodAreSet = false;
     bool public distributedShares = false;
     bool public began = false;
+    bool public tokenSalePaused = false;
 
     mapping(uint => uint) public dailyTotals;
     mapping(uint => mapping(address => uint)) public userBuys;
@@ -240,6 +241,14 @@ contract TokenSale is Ownable {
         token.unpause();
     }
 
+    function pauseTokenSale() public onlyOwner {
+        tokenSalePaused = true;
+    }
+
+    function unpauseTokenSale() public onlyOwner {
+        tokenSalePaused = false;
+    }
+
     function burnTokens(address account, uint amount) public onlyOwner {
         token.burn(account, amount);
     }
@@ -277,6 +286,7 @@ contract TokenSale is Ownable {
     // applying this payment that will be allowed.
     function buyWithLimit(uint window, uint limit) public payable {
         require(began == true, "began should be == true");
+        require(tokenSalePaused == false, "tokenSalePaused should be == false");
         require(time() >= firstWindowStartTime, "time() should be >= firstWindowStartTime");
         require(today() <= numberOfOtherWindows, "today() should be <= numberOfOtherWindows");
         require(msg.value >= MIN_ETH, "msg.value should be >= MIN_ETH");
