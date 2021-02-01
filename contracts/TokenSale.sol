@@ -37,16 +37,16 @@ contract TokenSale is Ownable {
     uint constant public TEAM_MEMBER_4_SHARE = 50000000 ether;
     uint constant public REVPOP_FOUNDATION_SHARE = 200000000 ether;
     uint constant public REVPOP_FOUNDATION_PERIOD_LENGTH = 365 days; // !!! for real ICO change to 365 days
-    uint constant public REVPOP_FOUNDATION_PERIODS = 10; // 10 days (!!! for real ICO it would be 10 years)
+    uint constant public REVPOP_FOUNDATION_PERIODS = 10; // 10 years (!!! for real ICO it would be 10 years)
     uint constant public REVPOP_COMPANY_SHARE = 200000000 ether;
     uint constant public REVPOP_COMPANY_PERIOD_LENGTH = 365 days; // !!! for real ICO change to 365 days
-    uint constant public REVPOP_COMPANY_PERIODS = 10; // 10 days (!!! for real ICO it would be 10 years)
+    uint constant public REVPOP_COMPANY_PERIODS = 10; // 10 years (!!! for real ICO it would be 10 years)
 
     address[9] public wallets = [
         // RevPop.org foundation
         0x26be1e82026BB50742bBF765c8b1665bCB763c4c,
 
-        // RevPop the company
+        // RevPop company
         0x4A2d3b4475dA7E634154F1868e689705bDCEEF4c,
 
         // Marketing
