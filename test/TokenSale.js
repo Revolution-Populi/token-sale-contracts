@@ -37,6 +37,12 @@ const NUMBER_OF_OTHER_WINDOWS = 237;
 const WINDOW_DURATION_IN_SEC = 82800; // 23 hours
 
 let initializeTokenSale = async (tokenSale, accounts, customProps, customTokensPerPeriodProps) => {
+    const token = await getTokenFromTokenSale(tokenSale);
+
+    if ((await token.owner()) !== tokenSale.address) {
+      await token.transferOwnership(tokenSale.address);
+    }
+
     let startTime = new Date().getTime();
 
     let props = {
@@ -103,12 +109,15 @@ contract('TokenSale', accounts => {
         let escrow = await getEscrowFromTokenSale(tokenSale);
         let token = await getTokenFromTokenSale(tokenSale);
 
+        await initializeTokenSale(tokenSale, accounts);
+
         assert.equal(true, await token.hasException(escrow.address));
         assert.equal(true, await token.hasException(tokenSale.address));
         assert.equal(true, await token.hasException(MARKETING_ACCOUNT));
         assert.equal(false, await token.hasException(accounts[0]));
         assert.equal(false, await token.hasException(accounts[1]));
         assert.equal(false, await token.hasException(accounts[2]));
+        assert.equal(false, await token.hasException('0x0000000000000000000000000000000000000000'));
     });
 
     it("should have token and escrow contracts with owner as TokenSale", async () => {
@@ -116,8 +125,10 @@ contract('TokenSale', accounts => {
         let escrow = await getEscrowFromTokenSale(tokenSale);
         let token = await getTokenFromTokenSale(tokenSale);
 
-        assert.equal(tokenSale.address, await token.owner());
+        await initializeTokenSale(tokenSale, accounts);
+
         assert.equal(tokenSale.address, await escrow.owner());
+        assert.equal(tokenSale.address, await token.owner());
     });
 
     it("should initialize with given values", async () => {
@@ -318,7 +329,7 @@ contract('TokenSale', accounts => {
             [accounts[1], accounts[2]],
             [sellableTokenAmount.toString(10), '1'],
             { from: accounts[0] }),
-            "token.balanceOf(address(this)).sub(totalReservedTokens()) should be > needTokens"
+            "token.balanceOf(address(this)) should be > totalReservedTokens() after bulk purchases"
         );
 
         await tokenSale.addBulkPurchasers(

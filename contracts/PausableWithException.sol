@@ -36,7 +36,7 @@ contract PausableWithException is Pausable, Ownable {
     }
 
     function hasException(address _account) public view returns (bool) {
-        return exceptions[_account] == true;
+        return exceptions[_account];
     }
 
     function setPausableException(address _account, bool _status) external whenNotPaused onlyOwner {
