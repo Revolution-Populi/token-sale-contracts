@@ -131,6 +131,7 @@ contract TokenSale is Ownable {
         token.setPausableException(address(tokenEscrow), true);
         token.setPausableException(address(this), true);
         token.setPausableException(wallets[2], true);
+        token.setPausableException(wallets[7], true);
 
         require(initialized == false, "initialized should be == false");
         require(_totalSupply > 0, "_totalSupply should be > 0");

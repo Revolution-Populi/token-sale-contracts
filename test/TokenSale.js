@@ -117,6 +117,7 @@ contract('TokenSale', accounts => {
         assert.equal(false, await token.hasException(accounts[0]));
         assert.equal(false, await token.hasException(accounts[1]));
         assert.equal(false, await token.hasException(accounts[2]));
+        assert.equal(false, await token.hasException(accounts[7]));
         assert.equal(false, await token.hasException('0x0000000000000000000000000000000000000000'));
     });
 
