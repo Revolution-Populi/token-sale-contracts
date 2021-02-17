@@ -25,6 +25,7 @@
     "babel-preset-stage-3": "^6.24.1",
     "bignumber.js": "^9.0.1",
     "dotenv": "^8.2.0",
+    "pify": "^5.0.0",
     "truffle": "5.1.63"
   },
   "devDependencies": {

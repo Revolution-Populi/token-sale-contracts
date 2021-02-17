@@ -24,10 +24,8 @@ contract Creator {
     Token public token = new Token('RevolutionPopuli ERC20 Token', 'RVP');
     TokenEscrow public tokenEscrow;
 
-    function createToken() external returns (Token) {
+    constructor() {
         token.transferOwnership(msg.sender);
-
-        return token;
     }
 
     function createTokenEscrow() external returns (TokenEscrow) {

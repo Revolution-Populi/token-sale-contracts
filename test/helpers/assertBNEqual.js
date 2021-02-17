@@ -1,6 +1,6 @@
 require('babel-polyfill');
 
-const Token = artifacts.require('REVToken');
+const Token = artifacts.require('Token');
 const web3 = Token.web3;
 
 const assertBNEqual = (actual, expected, message) => {

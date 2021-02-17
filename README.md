@@ -25,4 +25,10 @@ This env uses ganache-cli as blockchain.
 make flatten
 ```
 
-This command will save a file ./flattened.sol (git ignored).
+This command will save a file ./TokenSale_flat.sol (git ignored).
+
+## Run unit tests
+
+```bash
+sudo make truffle COMMAND="test"
+```

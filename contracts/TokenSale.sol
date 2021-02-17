@@ -103,22 +103,16 @@ contract TokenSale is Ownable {
     event LogClaim         (uint window, address user, uint amount);
     event LogCollect       (uint amount);
     event LogCollectUnsold (uint amount);
-    event LogFreeze        ();
 
     constructor(Creator creator) {
-        token = creator.createToken();
+        token = creator.token();
 
-        require(token.owner() == address(this), "Invalid owner of the Token");
         require(token.totalSupply() == 0, "Total supply of Token should be 0");
 
         tokenEscrow = creator.createTokenEscrow();
 
         require(tokenEscrow.owner() == address(this), "Invalid owner of the TokenEscrow");
         require(tokenEscrow.unlockStart() == 0, "TokenEscrow.unlockStart should be 0");
-
-        token.setPausableException(address(tokenEscrow), true);
-        token.setPausableException(address(this), true);
-        token.setPausableException(wallets[2], true);
     }
 
     function renounceOwnership() public override onlyOwner {
@@ -133,6 +127,12 @@ contract TokenSale is Ownable {
         uint _otherWindowsStartTime,
         uint _numberOfOtherWindows
     ) public onlyOwner {
+        require(token.owner() == address(this), "Invalid owner of the Token");
+        token.setPausableException(address(tokenEscrow), true);
+        token.setPausableException(address(this), true);
+        token.setPausableException(wallets[2], true);
+        token.setPausableException(wallets[7], true);
+
         require(initialized == false, "initialized should be == false");
         require(_totalSupply > 0, "_totalSupply should be > 0");
         require(_firstWindowStartTime < _otherWindowsStartTime, "_firstWindowStartTime should be < _otherWindowsStartTime");
@@ -158,27 +158,21 @@ contract TokenSale is Ownable {
         require(count > 0, "count should be > 0");
         require(count == _tokens.length, "count should be == _tokens.length");
 
-        uint needTokens = 0;
-
         for (uint i = 0; i < count; i++) {
             require(_tokens[i] > 0, "_tokens[i] should be > 0");
-
-            needTokens = needTokens.add(_tokens[i]);
-        }
-
-        require(
-            token.balanceOf(address(this)).sub(totalReservedTokens()) > needTokens,
-            "token.balanceOf(address(this)).sub(totalReservedTokens()) should be > needTokens"
-        );
-
-        for (uint i = 0; i < count; i++) {
             token.safeTransfer(_purchasers[i], _tokens[i]);
             totalBulkPurchasedTokens = totalBulkPurchasedTokens.add(_tokens[i]);
         }
+
+        require(
+            token.balanceOf(address(this)) > totalReservedTokens(),
+            "token.balanceOf(address(this)) should be > totalReservedTokens() after bulk purchases"
+        );
     }
 
     function setTokensPerPeriods(uint _firstPeriodTokens, uint _otherPeriodTokens) public onlyOwner {
         require(initialized == true, "initialized should be == true");
+        require(began == false, "began should be == false");
 
         tokensPerPeriodAreSet = true;
 
