@@ -172,6 +172,7 @@ contract TokenSale is Ownable {
 
     function setTokensPerPeriods(uint _firstPeriodTokens, uint _otherPeriodTokens) public onlyOwner {
         require(initialized == true, "initialized should be == true");
+        require(began == false, "began should be == false");
 
         tokensPerPeriodAreSet = true;
 
