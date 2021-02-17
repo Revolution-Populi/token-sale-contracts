@@ -172,6 +172,22 @@ contract('TokenSale', accounts => {
         await expectThrow(setTokensPerPeriod(tokenSale, accounts, {from: accounts[1]}), 'Ownable: caller is not the owner');
     });
 
+    it("should allow to call setTokensPerPeriods multiple times but only before tokensale began", async () => {
+        let tokenSale = await createTokenSale();
+
+        await initializeTokenSale(tokenSale, accounts);
+
+        setTokensPerPeriod(tokenSale, accounts);
+
+        await tokenSale.distributeShares({ from: accounts[0] });
+
+        setTokensPerPeriod(tokenSale, accounts);
+
+        await tokenSale.begin({ from: accounts[0] });
+
+        await expectThrow(setTokensPerPeriod(tokenSale, accounts), 'began should be == false');
+    });
+
     it("should have create per first/other window values after calling distributeShares (without bulk purchasers)", async () => {
         let tokenSale = await createTokenSale();
 
