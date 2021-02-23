@@ -27,7 +27,7 @@ contract TokenSale is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for Token;
 
-    uint constant public MIN_ETH = 1 ether; // !!! for real ICO change to 1 ether
+    uint constant public MIN_ETH = 0.1 ether; // !!! for real ICO change to 0.1 ether
     uint constant public WINDOW_DURATION = 23 hours; // !!! for real ICO change to 23 hours
 
     uint constant public MARKETING_SHARE = 200000000 ether;
@@ -67,7 +67,7 @@ contract TokenSale is Ownable {
         // Unsold tokens taker
         0x8B104136F8c1FC63fBA34cb46c42c7af5532f80e,
 
-        // Beneficiarry
+        // Beneficiary
         0x655DbB26b207952a90eF6b0752AEa85ECeCcEFF4
     ];
 
