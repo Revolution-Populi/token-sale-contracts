@@ -22,14 +22,13 @@ import './TokenEscrow.sol';
 
 contract Creator {
     Token public token = new Token('RevolutionPopuli ERC20 Token', 'RVP');
-    TokenEscrow public tokenEscrow;
 
     constructor() {
         token.transferOwnership(msg.sender);
     }
 
     function createTokenEscrow() external returns (TokenEscrow) {
-        tokenEscrow = new TokenEscrow(token);
+        TokenEscrow tokenEscrow = new TokenEscrow(token);
         tokenEscrow.transferOwnership(msg.sender);
 
         return tokenEscrow;
