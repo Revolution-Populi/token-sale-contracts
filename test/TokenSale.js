@@ -632,7 +632,7 @@ contract('TokenSale', accounts => {
 
         await tokenSale.begin({ from: accounts[0] });
 
-        await expectThrow(tokenSale.buy({ from: accounts[1], value: '999999999999999999' }), 'msg.value should be >= MIN_ETH');
+        await expectThrow(tokenSale.buy({ from: accounts[1], value: '99999999999999999' }), 'msg.value should be >= MIN_ETH');
         await expectThrow(tokenSale.buyWithLimit(999, 0, { from: accounts[1], value: '1000000000000000000' }), 'window should be <= numberOfOtherWindows');
     });
 
